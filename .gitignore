@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.log
+
+# Archives (add explicitly if you want to commit these)
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Large media (add explicitly if you want to commit these)
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wmv
+
+# Secrets / credentials
+.env
+.env.*
+*.pem
+*.key
+secrets/
