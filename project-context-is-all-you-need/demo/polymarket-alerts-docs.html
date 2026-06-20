@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polymarket → Telegram Threshold Alerts — Project Context</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Design tokens ──────────────────────────────────────────────────── */
+    :root {
+      --bg:           #FBF8F2;
+      --ink:          #211C16;
+      --ink-muted:    #6B6057;
+      --ink-faint:    #A89F94;
+      --border:       #DDD5C8;
+      --border-light: #EDE7DE;
+      --amber:        #E0922F;
+      --amber-light:  #FDF0DC;
+      --amber-dim:    #C47820;
+      --teal:         #0E7C6B;
+      --teal-light:   #DCF0EC;
+      --teal-dim:     #0A5F52;
+      --red:          #C2410C;
+      --red-light:    #FEE8DC;
+      --card-arch:    #EEF6F4;
+      --card-int:     #F5EFE6;
+      --card-const:   #F5E8E8;
+      --card-biz:     #EDEEF8;
+      --code-bg:      #2B2318;
+      --code-text:    #F0E6D8;
+      --code-border:  #4A3C2E;
+
+      --font-display: 'Fraunces', 'Georgia', serif;
+      --font-body:    'IBM Plex Sans', 'Helvetica Neue', sans-serif;
+      --font-mono:    'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
+
+      --radius:       8px;
+      --radius-lg:    14px;
+      --max-prose:    72ch;
+    }
+
+    /* ─── Reset & base ───────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 17px;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    body {
+      font-family: var(--font-body);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      html { scroll-behavior: auto; }
+    }
+
+    /* ─── Typography ─────────────────────────────────────────────────────── */
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      line-height: 1.2;
+      color: var(--ink);
+    }
+
+    h2 {
+      font-size: 1.85rem;
+      font-weight: 600;
+      margin-bottom: 0.3em;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.4em;
+      color: var(--ink);
+    }
+
+    h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.3em;
+    }
+
+    p { margin-bottom: 1em; }
+    p:last-child { margin-bottom: 0; }
+
+    a { color: var(--teal); text-decoration: underline; text-underline-offset: 2px; }
+    a:hover { color: var(--teal-dim); }
+
+    strong { font-weight: 600; }
+    em { font-style: italic; }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.85em;
+      background: var(--amber-light);
+      color: var(--amber-dim);
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    ul, ol {
+      padding-left: 1.6em;
+      margin-bottom: 1em;
+    }
+
+    li { margin-bottom: 0.3em; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5em;
+      font-size: 0.9rem;
+    }
+
+    th {
+      font-family: var(--font-display);
+      font-weight: 600;
+      text-align: left;
+      padding: 0.6em 1em;
+      background: var(--amber-light);
+      border-bottom: 2px solid var(--amber);
+      color: var(--ink);
+    }
+
+    td {
+      padding: 0.55em 1em;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--border-light); }
+
+    /* ─── Prose container ────────────────────────────────────────────────── */
+    .prose {
+      max-width: var(--max-prose);
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ─── Sticky TOC ─────────────────────────────────────────────────────── */
+    .toc-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(251, 248, 242, 0.94);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.55rem 0;
+      animation: slideDown 0.4s ease both;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .toc-inner {
+      max-width: var(--max-prose);
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      gap: 0.25rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .toc-label {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-faint);
+      margin-right: 0.5rem;
+      white-space: nowrap;
+    }
+
+    .toc-bar a {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      text-decoration: none;
+      padding: 0.25em 0.7em;
+      border-radius: 20px;
+      border: 1px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+
+    .toc-bar a:hover {
+      color: var(--teal);
+      border-color: var(--teal);
+      background: var(--teal-light);
+    }
+
+    /* ─── Hero ───────────────────────────────────────────────────────────── */
+    .hero {
+      background-image:
+        radial-gradient(ellipse 90% 60% at 70% 100%, #F5E8CF 0%, transparent 65%),
+        radial-gradient(ellipse 70% 80% at 0% 20%, #DCF0EC 0%, transparent 55%),
+        url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='1' cy='1' r='0.8' fill='%23D4C9BA' opacity='0.45'/%3E%3C/svg%3E");
+      background-color: var(--bg);
+      border-bottom: 2px solid var(--amber);
+      padding: 5rem 0 4rem;
+      animation: fadeSlideIn 0.6s ease both;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 0.8rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.2rem;
+      line-height: 1.1;
+    }
+
+    .hero h1 .arrow {
+      color: var(--amber);
+    }
+
+    .hero-tagline {
+      font-size: 1.2rem;
+      font-weight: 400;
+      font-style: italic;
+      color: var(--ink-muted);
+      margin-bottom: 1.6rem;
+      font-family: var(--font-display);
+    }
+
+    .hero-body {
+      font-size: 1.05rem;
+      max-width: 58ch;
+      color: var(--ink);
+      margin-bottom: 2.2rem;
+    }
+
+    .fact-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+      font-size: 0.82rem;
+      font-family: var(--font-body);
+      font-weight: 500;
+      padding: 0.35em 0.85em;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: rgba(251, 248, 242, 0.85);
+      color: var(--ink-muted);
+      white-space: nowrap;
+    }
+
+    .pill .pill-key {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* ─── Section chrome ─────────────────────────────────────────────────── */
+    .section {
+      padding: 4rem 0;
+      border-bottom: 1px solid var(--border-light);
+      animation: fadeSlideIn 0.5s ease both;
+    }
+
+    .section:nth-child(2)  { animation-delay: 0.05s; }
+    .section:nth-child(3)  { animation-delay: 0.10s; }
+    .section:nth-child(4)  { animation-delay: 0.15s; }
+    .section:nth-child(5)  { animation-delay: 0.20s; }
+    .section:nth-child(6)  { animation-delay: 0.25s; }
+    .section:nth-child(7)  { animation-delay: 0.30s; }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid var(--border-light);
+    }
+
+    .section-num {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--amber);
+      flex-shrink: 0;
+    }
+
+    /* ─── Diagram wrapper ────────────────────────────────────────────────── */
+    .diagram-wrap {
+      background: var(--amber-light);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--amber);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      overflow-x: auto;
+    }
+
+    .diagram-wrap .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ─── Glossary ───────────────────────────────────────────────────────── */
+    .glossary {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(16ch, 1fr));
+      gap: 0.8rem;
+      margin: 1.5rem 0;
+    }
+
+    .gloss-item {
+      background: var(--teal-light);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+    }
+
+    .gloss-term {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--teal-dim);
+      display: block;
+      margin-bottom: 0.25em;
+    }
+
+    .gloss-def {
+      font-size: 0.85rem;
+      color: var(--ink-muted);
+      line-height: 1.45;
+    }
+
+    /* ─── Getting Started steps ──────────────────────────────────────────── */
+    .steps { counter-reset: step; }
+
+    .step {
+      display: grid;
+      grid-template-columns: 2.8rem 1fr;
+      gap: 0 1.2rem;
+      margin-bottom: 2.2rem;
+    }
+
+    .step-num {
+      counter-increment: step;
+      width: 2.8rem;
+      height: 2.8rem;
+      border-radius: 50%;
+      background: var(--amber);
+      color: white;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .step-body h3 {
+      margin-top: 0.3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ─── Code blocks ────────────────────────────────────────────────────── */
+    pre.code-block {
+      background: var(--code-bg);
+      color: var(--code-text);
+      font-family: var(--font-mono);
+      font-size: 0.83rem;
+      line-height: 1.55;
+      padding: 1.2rem 1.4rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--code-border);
+      overflow-x: auto;
+      margin: 0.8rem 0 1.2rem;
+      white-space: pre;
+    }
+
+    pre.code-block .comment { color: #9A8F7A; }
+    pre.code-block .kw      { color: #E0922F; }
+    pre.code-block .str     { color: #8BC5AA; }
+
+    /* ─── Callouts ───────────────────────────────────────────────────────── */
+    .callout {
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+    }
+
+    .callout-note {
+      background: var(--teal-light);
+      border-left: 4px solid var(--teal);
+      color: var(--ink);
+    }
+
+    .callout-warn {
+      background: var(--red-light);
+      border-left: 4px solid var(--red);
+      color: var(--ink);
+    }
+
+    .callout-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.4em;
+    }
+
+    .callout-note .callout-title { color: var(--teal-dim); }
+    .callout-warn .callout-title { color: var(--red); }
+
+    /* ─── "How it works" subsections ─────────────────────────────────────── */
+    .subsection { margin-bottom: 2.5rem; }
+
+    .subsection-label {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 0.4em;
+    }
+
+    /* ─── Strategy cards ─────────────────────────────────────────────────── */
+    .strategy-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1.2rem 0;
+    }
+
+    @media (max-width: 600px) {
+      .strategy-grid { grid-template-columns: 1fr; }
+    }
+
+    .strategy-card {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      background: var(--bg);
+    }
+
+    .strategy-card.once { border-top: 4px solid var(--amber); }
+    .strategy-card.hyst { border-top: 4px solid var(--teal); }
+
+    .strategy-name {
+      font-family: var(--font-mono);
+      font-weight: 500;
+      font-size: 1rem;
+      margin-bottom: 0.5em;
+    }
+
+    .strategy-card.once .strategy-name { color: var(--amber-dim); }
+    .strategy-card.hyst .strategy-name { color: var(--teal-dim); }
+
+    /* ─── Data model ─────────────────────────────────────────────────────── */
+    .table-cards {
+      display: grid;
+      gap: 0.8rem;
+      margin: 1rem 0;
+    }
+
+    .table-card {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.9rem 1.2rem;
+      display: grid;
+      grid-template-columns: 10ch 1fr;
+      gap: 0 1rem;
+      align-items: start;
+    }
+
+    .table-name {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--amber-dim);
+      padding-top: 0.1em;
+    }
+
+    .table-desc { font-size: 0.9rem; }
+
+    /* ─── Why / design-decision cards ───────────────────────────────────── */
+    .why-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .why-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.2rem 1.4rem;
+      border-left-width: 5px;
+    }
+
+    .why-card.platform    { background: var(--card-arch); border-left-color: var(--teal); }
+    .why-card.datamodel   { background: var(--card-int);  border-left-color: var(--amber); }
+    .why-card.namespacing { background: var(--card-const); border-left-color: var(--red); }
+    .why-card.integration { background: var(--card-biz);  border-left-color: #6B7FD4; }
+
+    .why-card-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.8rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .why-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 0.2em 0.6em;
+      border-radius: 3px;
+    }
+
+    .why-card.platform    .why-tag { background: var(--teal-light);  color: var(--teal-dim); }
+    .why-card.datamodel   .why-tag { background: var(--amber-light); color: var(--amber-dim); }
+    .why-card.namespacing .why-tag { background: var(--red-light);   color: var(--red); }
+    .why-card.integration .why-tag { background: #E8EAFB;            color: #4255B5; }
+
+    .why-facts { list-style: none; padding: 0; }
+
+    .why-facts li {
+      font-size: 0.92rem;
+      padding: 0.55em 0;
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+      line-height: 1.5;
+    }
+
+    .why-facts li:last-child { border-bottom: none; }
+
+    .why-facts .rule {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .why-facts .reason {
+      color: var(--ink-muted);
+    }
+
+    /* ─── File tree ──────────────────────────────────────────────────────── */
+    .file-tree {
+      background: var(--code-bg);
+      color: var(--code-text);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      padding: 1.3rem 1.5rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--code-border);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .file-tree .dir  { color: #E0922F; font-weight: 500; }
+    .file-tree .desc { color: #9A8F7A; }
+
+    /* ─── Changelog ──────────────────────────────────────────────────────── */
+    .changelog-entry {
+      display: grid;
+      grid-template-columns: 9ch 1fr;
+      gap: 0 1.2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .changelog-entry:last-child { border-bottom: none; }
+
+    .changelog-date {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--amber-dim);
+      padding-top: 0.1em;
+    }
+
+    .changelog-items { font-size: 0.9rem; }
+    .changelog-items li { margin-bottom: 0.2em; }
+
+    /* ─── Known follow-ups ───────────────────────────────────────────────── */
+    .followup-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .followup-list li {
+      padding: 0.8rem 1rem;
+      border-left: 3px solid var(--border);
+      margin-bottom: 0.7rem;
+      background: var(--bg);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .followup-list li:hover {
+      border-left-color: var(--amber);
+    }
+
+    /* ─── Footer ─────────────────────────────────────────────────────────── */
+    .footer {
+      padding: 3rem 0 4rem;
+      text-align: center;
+    }
+
+    .footer p {
+      font-size: 0.82rem;
+      color: var(--ink-faint);
+      margin-bottom: 0.3em;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ── STICKY TABLE OF CONTENTS ─────────────────────────────────────── -->
+  <nav class="toc-bar" aria-label="Table of contents">
+    <div class="toc-inner">
+      <span class="toc-label">Sections</span>
+      <a href="#hero">Overview</a>
+      <a href="#at-a-glance">At a Glance</a>
+      <a href="#getting-started">Getting Started</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#why">Why It's Built This Way</a>
+      <a href="#maintaining">Maintaining It</a>
+    </div>
+  </nav>
+
+  <!-- ── 1. HERO ───────────────────────────────────────────────────────── -->
+  <header class="hero" id="hero">
+    <div class="prose">
+      <p class="hero-eyebrow">Open-source &middot; Phase 1 &middot; Personal script</p>
+      <h1>Polymarket <span class="arrow">&rarr;</span> Telegram Threshold Alerts</h1>
+      <p class="hero-tagline">Prediction markets as an early-warning signal for the real world.</p>
+      <div class="hero-body">
+        <p>This tool watches Polymarket prediction markets &mdash; but not to follow the markets for their own sake. People with money at stake price in new information fast, so a sharp move in a market's implied probability is often a sign that <em>something is happening in the world</em>, and that news may be about to break. When a market you're watching crosses a threshold you set, you get a Telegram message &mdash; an early nudge to go look.</p>
+        <p>For instance: a sudden jump in <em>&ldquo;Strait of Hormuz traffic returns to normal by July 31&rdquo;</em> could mean the crowd is reacting to signals of de-escalation well before they reach the headlines. It&rsquo;s an indication, not an oracle &mdash; markets can be thin, manipulated, or throw false signals, so treat each ping as a prompt to investigate, not a fact.</p>
+        <p>The whole thing runs on the Supabase free tier: a scheduled function wakes every 5 minutes, checks your alerts, and goes back to sleep.</p>
+      </div>
+      <div class="fact-pills">
+        <span class="pill"><span class="pill-key">Status:</span> Phase 1 &middot; personal script</span>
+        <span class="pill"><span class="pill-key">Stack:</span> Supabase + Deno + Telegram</span>
+        <span class="pill"><span class="pill-key">Cost:</span> Supabase free tier</span>
+        <span class="pill"><span class="pill-key">Poll frequency:</span> every 5 min</span>
+        <span class="pill"><span class="pill-key">Invocations:</span> ~8,600 / month</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── 2. AT A GLANCE ────────────────────────────────────────────────── -->
+  <section class="section" id="at-a-glance">
+    <div class="prose">
+      <div class="section-header">
+        <span class="section-num">01</span>
+        <h2>At a Glance</h2>
+      </div>
+
+      <p>Every five minutes, a single Edge Function wakes up, reads your active alert rules from Postgres, fetches each unique market's price from Polymarket once, and fires a Telegram message for any alert whose threshold has been crossed. Here's the whole system:</p>
+
+      <div class="diagram-wrap">
+        <pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#FDF0DC", "primaryBorderColor": "#E0922F", "primaryTextColor": "#211C16", "lineColor": "#6B6057", "secondaryColor": "#DCF0EC", "tertiaryColor": "#FBF8F2", "edgeLabelBackground": "#FBF8F2", "clusterBkg": "#FDF0DC", "titleColor": "#211C16", "nodeBorder": "#E0922F", "mainBkg": "#FDF0DC"}}}%%
+flowchart LR
+    CRON["pg_cron\nevery 5 min"]
+    FN["Edge Function\npoll-markets"]
+    PM["Polymarket\nGamma API"]
+    DB["Postgres\npolymarket_alerts schema"]
+    TG["Telegram\nBot API"]
+
+    CRON -->|"invoke via pg_net"| FN
+    FN -->|"fetch Yes price"| PM
+    FN -->|"read alerts / write state"| DB
+    FN -->|"send alert on crossing"| TG</pre>
+      </div>
+
+      <p>The loop is simple: <strong>load rules &rarr; fetch prices &rarr; decide &rarr; notify &rarr; persist</strong>. Each market is fetched once per tick regardless of how many alert rules watch it. State is persisted to Postgres only after a confirmed Telegram delivery.</p>
+
+      <div class="glossary">
+        <div class="gloss-item">
+          <span class="gloss-term">market</span>
+          <span class="gloss-def">A Polymarket event slug. One row in the <code>markets</code> table. Stores the last observed probability.</span>
+        </div>
+        <div class="gloss-item">
+          <span class="gloss-term">alert</span>
+          <span class="gloss-def">A rule attached to a market: threshold, strategy, Telegram chat ID, expiry, and current state (armed / triggered).</span>
+        </div>
+        <div class="gloss-item">
+          <span class="gloss-term">threshold</span>
+          <span class="gloss-def">A probability (0.0&ndash;1.0) that the Yes price must reach or exceed to fire the alert.</span>
+        </div>
+        <div class="gloss-item">
+          <span class="gloss-term">strategy</span>
+          <span class="gloss-def">How the alert behaves after firing: <code>once</code> (terminal) or <code>hysteresis</code> (re-arms below a lower threshold).</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. GETTING STARTED ────────────────────────────────────────────── -->
+  <section class="section" id="getting-started">
+    <div class="prose">
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <h2>Getting Started</h2>
+      </div>
+
+      <p>You need a <strong>Supabase project</strong> (free tier is fine), a <strong>Telegram bot</strong>, and the <a href="https://supabase.com/docs/guides/cli">Supabase CLI</a> (v2.106+) and <a href="https://deno.com">Deno</a> (v2.8+) installed locally.</p>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Prerequisites</h3>
+            <p>Create a Supabase project at <a href="https://supabase.com/dashboard">supabase.com/dashboard</a> (free tier). Note the <strong>project ref</strong> (the subdomain in <code>https://&lt;ref&gt;.supabase.co</code>) and the <strong>service-role key</strong> (Settings &rarr; API).</p>
+            <p>Create a Telegram bot via <a href="https://t.me/BotFather">@BotFather</a> (<code>/newbot</code>) and save the bot token. Then message your bot once and retrieve your numeric chat ID:</p>
+<pre class="code-block">curl -s "https://api.telegram.org/bot&lt;BOT_TOKEN&gt;/getUpdates" | python3 -m json.tool</pre>
+            <p>Read <code>result[].message.chat.id</code> from the response.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Link and migrate</h3>
+            <p>Link your local clone to your Supabase project and push the schema migrations:</p>
+<pre class="code-block">supabase link --project-ref &lt;YOUR_PROJECT_REF&gt;
+supabase db push</pre>
+            <p>Then in the Supabase dashboard: <strong>Settings &rarr; API &rarr; Exposed schemas</strong> &rarr; add <code>polymarket_alerts</code> to the list and save. This is required &mdash; PostgREST only serves schemas that are explicitly exposed, and the Edge Function queries Postgres through PostgREST.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Deploy the function and set secrets</h3>
+            <p>Set the Telegram bot token as a function secret, deploy, then smoke-test:</p>
+<pre class="code-block">supabase secrets set POLYMARKET_ALERTS_TELEGRAM_BOT_TOKEN=&lt;YOUR_BOT_TOKEN&gt;
+supabase functions deploy polymarket-alerts-poll
+supabase functions invoke polymarket-alerts-poll --no-verify-jwt</pre>
+            <p>The smoke test should return <code>{"markets":0,"fired":0,"rearmed":0,...}</code> &mdash; no alerts yet, but the function runs and connects to the DB successfully.</p>
+            <div class="callout callout-note">
+              <p class="callout-title">Note on the secret name</p>
+              <p>The secret is named <code>POLYMARKET_ALERTS_TELEGRAM_BOT_TOKEN</code> &mdash; not the shorter <code>TELEGRAM_BOT_TOKEN</code>. Edge Function secrets are shared across <em>all</em> functions in a Supabase project, so a bare name would collide with other mini-projects. See the <a href="#maintaining">Maintaining</a> section for the full story.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Seed an alert</h3>
+            <p>Copy <code>sql/seed.sql</code>, replace <code>&lt;YOUR_CHAT_ID&gt;</code> with your numeric Telegram chat ID, and run it against your hosted database:</p>
+<pre class="code-block">supabase db query --file sql/seed.sql</pre>
+            <p>The template seeds a Strait of Hormuz market alert at 80%. Adjust the slug, label, and threshold as needed. Do <strong>not</strong> commit your real chat ID to git &mdash; keep it only in your local copy.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Schedule it</h3>
+            <p>Fill in your project ref and service-role key in a local copy of <code>sql/schedule.sql</code>, then run it once in the Supabase dashboard SQL Editor. It registers a <code>pg_cron</code> job that invokes the function every 5 minutes:</p>
+<pre class="code-block"><span class="comment">-- Enable extensions (hosted Supabase supports both)</span>
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+<span class="comment">-- Store credentials in Vault (prefixed names avoid sibling-project collisions)</span>
+select vault.create_secret('https://&lt;YOUR_PROJECT_REF&gt;.supabase.co', 'pma_project_url');
+select vault.create_secret('&lt;SERVICE_ROLE_KEY&gt;', 'pma_service_role_key');
+
+<span class="comment">-- Schedule the poll every 5 minutes</span>
+select cron.schedule(
+  'pma-poll-every-5-min',
+  '*/5 * * * *',
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'pma_project_url')
+           || '/functions/v1/polymarket-alerts-poll',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'pma_service_role_key')
+    ),
+    body := jsonb_build_object('trigger', 'pg_cron')
+  );
+  $$
+);</pre>
+            <p>Verify the job is registered:</p>
+<pre class="code-block">select jobname, schedule, active from cron.job where jobname = 'pma-poll-every-5-min';</pre>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="callout callout-note">
+        <p class="callout-title">Running unit tests locally</p>
+        <p>The pure decision logic and the Polymarket price parser are unit-tested with Deno. No Docker needed &mdash; run from the repo root:</p>
+<pre class="code-block">deno test supabase/functions/polymarket-alerts-poll/</pre>
+        <p>Expects 14 passing tests (decision state machine + Yes-price parser). I/O paths (network, Telegram, DB) are verified manually against the real services during deploy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4. HOW IT WORKS ───────────────────────────────────────────────── -->
+  <section class="section" id="how-it-works">
+    <div class="prose">
+      <div class="section-header">
+        <span class="section-num">03</span>
+        <h2>How It Works</h2>
+      </div>
+
+      <!-- Poll cycle -->
+      <div class="subsection">
+        <p class="subsection-label">The poll cycle</p>
+        <h3>Each 5-minute tick</h3>
+        <p>When <code>pg_cron</code> fires, it uses <code>pg_net</code> to make an HTTP POST to the <code>polymarket-alerts-poll</code> Edge Function. The function runs this pipeline in sequence:</p>
+        <ol>
+          <li><strong>Load active alerts</strong> &mdash; query the <code>alerts</code> table for rows where <code>expire_at</code> is null or in the future, embedding the parent market in the same query.</li>
+          <li><strong>Group by market</strong> &mdash; deduplicate across alerts so each unique market is fetched exactly once, regardless of how many alert rules watch it.</li>
+          <li><strong>Fetch prices</strong> &mdash; for each unique market, call the Polymarket Gamma API. The Yes-token price is the implied probability (0.82 = 82% chance). Update <code>markets.last_probability</code>.</li>
+          <li><strong>Decide per alert</strong> &mdash; run the pure <code>decide()</code> function: <code>(price, threshold, strategy, rearmThreshold, state) &rarr; {action, nextState}</code>.</li>
+          <li><strong>Notify then persist</strong> &mdash; on a <code>fire</code> decision, send the Telegram message first; only write <code>state = 'triggered'</code> and an <code>alert_log</code> row after a confirmed HTTP 200 from Telegram.</li>
+        </ol>
+        <p>Each market's fetch/evaluate/notify cycle is wrapped in its own <code>try/catch</code> so a single bad slug (e.g. a 404 from Polymarket) cannot abort the whole batch &mdash; the remaining markets still get processed.</p>
+      </div>
+
+      <!-- Alerting strategies -->
+      <div class="subsection">
+        <p class="subsection-label">Alerting strategies</p>
+        <h3>once vs hysteresis</h3>
+        <p>Each alert has a <code>strategy</code> field. The alerting is <strong>edge-triggered</strong> (fires on the transition from below to at-or-above the threshold) &mdash; not level-triggered, which would re-fire every poll while above the line.</p>
+
+        <div class="strategy-grid">
+          <div class="strategy-card once">
+            <p class="strategy-name">once <em>(default)</em></p>
+            <p>Fire the first time the price reaches or exceeds the threshold, then become permanently terminal. No re-arm path exists. Completely immune to flip-flop spam.</p>
+            <p><strong>Use when:</strong> a market resolves once &mdash; you want a single heads-up, not repeats.</p>
+          </div>
+          <div class="strategy-card hyst">
+            <p class="strategy-name">hysteresis</p>
+            <p>Fire on crossing, then re-arm only after the price falls back to or below a <strong>lower</strong> <code>rearm_threshold</code>. The deadband (e.g. fire at 80%, re-arm at 70%) absorbs oscillation &mdash; the same principle a thermostat uses.</p>
+            <p><strong>Use when:</strong> you want repeat alerts without spam when the price oscillates around your threshold.</p>
+          </div>
+        </div>
+
+        <p>The two strategies share a single two-state machine. <code>once</code> is <code>hysteresis</code> with the re-arm transition removed:</p>
+
+        <div class="diagram-wrap">
+          <pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#FDF0DC", "primaryBorderColor": "#E0922F", "primaryTextColor": "#211C16", "lineColor": "#6B6057", "secondaryColor": "#DCF0EC", "tertiaryColor": "#FBF8F2", "edgeLabelBackground": "#FBF8F2", "stateBkg": "#FDF0DC", "stateBorder": "#E0922F", "labelColor": "#211C16"}}}%%
+stateDiagram-v2
+    [*] --> armed
+    armed --> triggered: price >= threshold (fire)
+    triggered --> triggered: once -- any price (noop)
+    triggered --> armed: hysteresis -- price &lt;= rearm (re-arm)
+    triggered --> triggered: hysteresis -- rearm &lt; price &lt; threshold (noop)</pre>
+        </div>
+      </div>
+
+      <!-- Delivery reliability -->
+      <div class="subsection">
+        <p class="subsection-label">Reliability invariant</p>
+        <h3>Send before persist</h3>
+        <p>State is only persisted after a confirmed Telegram delivery. A <strong>duplicate alert</strong> (sent but state-flip failed, so it retries on the next tick) is strictly better than a <strong>silent miss</strong> (state flipped to triggered but no message was ever sent &mdash; permanent, never corrects).</p>
+
+        <div class="diagram-wrap">
+          <pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#FDF0DC", "primaryBorderColor": "#E0922F", "primaryTextColor": "#211C16", "lineColor": "#6B6057", "secondaryColor": "#DCF0EC", "tertiaryColor": "#FBF8F2", "edgeLabelBackground": "#FBF8F2", "actorBkg": "#FDF0DC", "actorBorder": "#E0922F", "actorTextColor": "#211C16", "actorLineColor": "#6B6057", "labelBoxBkgColor": "#FDF0DC", "signalColor": "#6B6057", "noteBkgColor": "#DCF0EC", "noteBorderColor": "#0E7C6B"}}}%%
+sequenceDiagram
+    participant Fn as poll-markets
+    participant TG as Telegram
+    participant DB as Postgres
+    Fn->>TG: send message
+    TG-->>Fn: 200 OK
+    Fn->>DB: set state=triggered, insert alert_log
+    Note over Fn,DB: persist ONLY after 200 -- duplicate beats silent miss</pre>
+        </div>
+
+        <p>If Telegram returns a non-200, the alert's <code>state</code> stays <code>armed</code> and the function retries naturally on the next 5-minute tick. If a Polymarket fetch fails, that market is skipped for this tick with no state change. All failures resolve to a missed tick, never to a permanently wrong state.</p>
+      </div>
+
+      <!-- Data model -->
+      <div class="subsection">
+        <p class="subsection-label">Data model</p>
+        <h3>Three tables, one schema</h3>
+        <p>All tables live in the <code>polymarket_alerts</code> Postgres schema, isolated from other projects sharing the same Supabase instance:</p>
+
+        <div class="table-cards">
+          <div class="table-card">
+            <span class="table-name">markets</span>
+            <div class="table-desc">
+              One row per watched Polymarket slug. Stores the last observed <code>last_probability</code> and <code>last_polled_at</code>. A market is an observed fact &mdash; its price is whatever it is. Polled once per tick, regardless of how many alerts watch it.
+            </div>
+          </div>
+          <div class="table-card">
+            <span class="table-name">alerts</span>
+            <div class="table-desc">
+              A rule + notification target layered on a market. Key columns: <code>threshold</code> (0.0&ndash;1.0), <code>strategy</code> (<code>once</code>/<code>hysteresis</code>), <code>rearm_threshold</code> (hysteresis only), <code>telegram_chat_id</code>, <code>expire_at</code> (null = never expires; past = inactive), and <code>state</code> (<code>armed</code>/<code>triggered</code>). One market can carry many alerts.
+            </div>
+          </div>
+          <div class="table-card">
+            <span class="table-name">alert_log</span>
+            <div class="table-desc">
+              An audit row written each time an alert fires. Records <code>alert_id</code>, <code>probability</code> at time of firing, and <code>triggered_at</code>. Written only after confirmed Telegram delivery.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5. WHY IT'S BUILT THIS WAY ───────────────────────────────────── -->
+  <section class="section" id="why">
+    <div class="prose">
+      <div class="section-header">
+        <span class="section-num">04</span>
+        <h2>Why It's Built This Way</h2>
+      </div>
+      <p>These are the non-obvious design decisions. Each has a <strong>rule</strong> (what was decided) and a <em>reason</em> (why). Read these before changing anything structural.</p>
+
+      <div class="why-grid">
+
+        <!-- Platform choice -->
+        <div class="why-card platform">
+          <div class="why-card-header">
+            <span class="why-tag">Architecture</span>
+            <h3>Platform choice</h3>
+          </div>
+          <ul class="why-facts">
+            <li>
+              <span class="rule">Supabase over AWS Lambda for compute + scheduling + state.</span>
+              <span class="reason"> A single platform handles all three: <code>pg_cron</code> for scheduling, Edge Functions for compute, Postgres for state. The free tier (500K invocations/month) far exceeds the ~8,600/month a 5-minute poll needs. AWS Lambda + EventBridge + DynamoDB also works, but spreads the system across three services for no benefit at this scale.</span>
+            </li>
+            <li>
+              <span class="rule">Vercel was rejected for the scheduling/polling job.</span>
+              <span class="reason"> Its Hobby (free) plan caps cron frequency at hourly &mdash; too slow for a useful threshold alert. Vercel is still the intended host for the web-app frontend in Phase 2; it just cannot own the poll loop.</span>
+            </li>
+            <li>
+              <span class="rule">A scheduled poll, not an always-on server.</span>
+              <span class="reason"> The workload is "check N markets every 5 minutes." A cron-triggered serverless function serves this at zero idle cost; a long-running process would burn a free VM doing nothing between ticks.</span>
+            </li>
+            <li>
+              <span class="rule">The Supabase project is shared, not dedicated.</span>
+              <span class="reason"> The free tier caps active projects at 2. Isolation is by Postgres schema. See the Namespacing card below.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Data model decoupling -->
+        <div class="why-card datamodel">
+          <div class="why-card-header">
+            <span class="why-tag">Data model</span>
+            <h3>Markets and alerts are separate tables</h3>
+          </div>
+          <ul class="why-facts">
+            <li>
+              <span class="rule">Markets and alerts are split even though Phase 1 has a single event.</span>
+              <span class="reason"> One market can carry many alert rules (different thresholds, different users). Separate tables mean each unique market is polled once per tick rather than once per rule. Done now, while the DB is empty, to avoid a painful migration later.</span>
+            </li>
+            <li>
+              <span class="rule">The notification channel (<code>telegram_chat_id</code>) is NOT factored into its own table.</span>
+              <span class="reason"> There is exactly one channel type (Telegram) and one recipient. A channels table is YAGNI until multiple channels or recipients exist &mdash; splitting it now would add a join and buy nothing. This marks the deliberate boundary of the decoupling.</span>
+            </li>
+            <li>
+              <span class="rule">A single nullable <code>expire_at</code> replaces a separate <code>is_active</code> flag.</span>
+              <span class="reason"> <code>is_active = false</code> and "past expiry" are two ways to express the same "don't poll this" state, which is confusing. One <code>expire_at</code> expresses both time-bound auto-expiry and manual kill (set it to <code>now()</code>). A reversible pause is a web-app-phase need; it will use a future <code>status</code> enum rather than reintroducing two overlapping on/off fields.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Shared-project namespacing -->
+        <div class="why-card namespacing">
+          <div class="why-card-header">
+            <span class="why-tag">Infrastructure</span>
+            <h3>Shared Supabase project namespacing</h3>
+          </div>
+          <ul class="why-facts">
+            <li>
+              <span class="rule">Multiple mini-projects share one Supabase project, isolated by a Postgres schema.</span>
+              <span class="reason"> The free tier allows only 2 active projects. A separate database within the project was rejected because Supabase's tooling (PostgREST, supabase-js, Edge Functions, the dashboard) only connects to the single <code>postgres</code> database &mdash; a second database would be unreachable. A schema is the only workable isolation boundary, and <code>drop schema ... cascade</code> cleanly removes a whole mini-project.</span>
+            </li>
+            <li>
+              <span class="rule">Every project-global Supabase namespace is prefixed per mini-project.</span>
+              <span class="reason"> Edge Function names, Edge Function secrets, Vault secret names, and pg_cron job names are all shared across the entire Supabase project. This project uses: function <code>polymarket-alerts-poll</code>, secret <code>POLYMARKET_ALERTS_TELEGRAM_BOT_TOKEN</code>, Vault secrets <code>pma_project_url</code> / <code>pma_service_role_key</code>, and cron job <code>pma-poll-every-5-min</code>.</span>
+            </li>
+            <li>
+              <span class="rule">A custom schema must be added to the API's "Exposed schemas" list.</span>
+              <span class="reason"> PostgREST only serves exposed schemas. The Edge Function reaches Postgres through PostgREST via supabase-js, even when using the <code>service_role</code> key. Without exposure, deployed function queries fail with a schema-not-exposed error.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Polymarket integration scope -->
+        <div class="why-card integration">
+          <div class="why-card-header">
+            <span class="why-tag">Integration</span>
+            <h3>Polymarket integration scope</h3>
+          </div>
+          <ul class="why-facts">
+            <li>
+              <span class="rule">Phase 1 supports binary Yes/No events only.</span>
+              <span class="reason"> A Polymarket event can contain multiple markets (outcomes), and handling multi-outcome events means deciding which outcome's price to watch. That complexity is out of scope until there's a concrete need; binary events cover the driving use case.</span>
+            </li>
+            <li>
+              <span class="rule">The Gamma API returns <code>outcomePrices</code> as a stringified JSON array, not a real array.</span>
+              <span class="reason"> The value must be parsed before use. A parse failure is treated as a fetch failure (skip this market this tick) rather than a crash. This is a non-obvious gotcha that looks like clean JSON until it isn't.</span>
+            </li>
+            <li>
+              <span class="rule">The Yes-token price IS the implied probability.</span>
+              <span class="reason"> A price of 0.82 means the market implies an 82% chance. The threshold compares against this directly &mdash; no conversion needed.</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6. MAINTAINING IT ──────────────────────────────────────────────── -->
+  <section class="section" id="maintaining">
+    <div class="prose">
+      <div class="section-header">
+        <span class="section-num">05</span>
+        <h2>Maintaining It</h2>
+      </div>
+
+      <!-- File tree -->
+      <div class="subsection">
+        <p class="subsection-label">Project structure</p>
+        <h3>File tree</h3>
+        <div class="file-tree"><span class="dir">supabase/</span>
+&#x251C;&#x2500;&#x2500; config.toml                       <span class="desc"># exposes polymarket_alerts schema to the API</span>
+&#x251C;&#x2500;&#x2500; <span class="dir">migrations/</span>
+&#x2502;   &#x2514;&#x2500;&#x2500; &#x2026;_create_schema.sql          <span class="desc"># schema + 3 tables + grants</span>
+&#x2514;&#x2500;&#x2500; <span class="dir">functions/polymarket-alerts-poll/</span>
+    &#x251C;&#x2500;&#x2500; index.ts                      <span class="desc"># orchestration: load &#x2192; fetch &#x2192; decide &#x2192; notify &#x2192; persist</span>
+    &#x251C;&#x2500;&#x2500; decision.ts                   <span class="desc"># PURE once/hysteresis state machine (unit-tested)</span>
+    &#x251C;&#x2500;&#x2500; decision_test.ts              <span class="desc"># Deno unit tests for decision logic</span>
+    &#x251C;&#x2500;&#x2500; polymarket.ts                 <span class="desc"># Gamma API fetch + tested Yes-price parser</span>
+    &#x251C;&#x2500;&#x2500; polymarket_test.ts            <span class="desc"># Deno unit tests for the parser</span>
+    &#x251C;&#x2500;&#x2500; telegram.ts                   <span class="desc"># send message + build alert text</span>
+    &#x2514;&#x2500;&#x2500; db.ts                         <span class="desc"># schema-scoped Supabase queries</span>
+<span class="dir">sql/</span>
+&#x251C;&#x2500;&#x2500; seed.sql                          <span class="desc"># template: insert a market + alert (placeholders)</span>
+&#x2514;&#x2500;&#x2500; schedule.sql                      <span class="desc"># template: pg_cron + Vault wiring (placeholders)</span>
+<span class="dir">docs/superpowers/</span>                        <span class="desc"># design spec + implementation plan</span></div>
+
+        <p>Key responsibility boundaries: <code>decision.ts</code> is pure logic (no I/O), fully unit-tested. <code>polymarket.ts</code> has a pure <code>parseYesProbability</code> (tested) and an I/O <code>fetchYesProbability</code> (manually verified). <code>index.ts</code> is the glue &mdash; it owns the send-before-persist ordering and per-market error isolation.</p>
+      </div>
+
+      <!-- Namespacing gotchas -->
+      <div class="subsection">
+        <p class="subsection-label">Namespacing gotchas</p>
+        <h3>Shared-project collision points</h3>
+
+        <div class="callout callout-warn">
+          <p class="callout-title">Warning: token collision risk</p>
+          <p>Edge Function secrets are <strong>shared across every function in the Supabase project</strong> &mdash; they are not scoped per function. If a sibling mini-project added to this shared Supabase project sets a secret named <code>TELEGRAM_BOT_TOKEN</code> (without the <code>POLYMARKET_ALERTS_</code> prefix), it would <strong>silently overwrite the token for every function</strong>, including this one. Your alerts would stop firing with no obvious error. Always use the full prefixed name <code>POLYMARKET_ALERTS_TELEGRAM_BOT_TOKEN</code> for this project.</p>
+        </div>
+
+        <p>The same collision risk applies to all project-global namespaces. Keep these names consistent:</p>
+        <table>
+          <thead>
+            <tr><th>Namespace</th><th>Name used</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Postgres schema</td><td><code>polymarket_alerts</code></td></tr>
+            <tr><td>Edge Function</td><td><code>polymarket-alerts-poll</code></td></tr>
+            <tr><td>Function secret</td><td><code>POLYMARKET_ALERTS_TELEGRAM_BOT_TOKEN</code></td></tr>
+            <tr><td>Vault secret (URL)</td><td><code>pma_project_url</code></td></tr>
+            <tr><td>Vault secret (key)</td><td><code>pma_service_role_key</code></td></tr>
+            <tr><td>pg_cron job</td><td><code>pma-poll-every-5-min</code></td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-note">
+          <p class="callout-title">Scheduling SQL is a one-time run</p>
+          <p><code>vault.create_secret</code> errors on a duplicate name. On a re-run, skip the two <code>create_secret</code> lines or use <code>vault.update_secret</code> instead. The committed <code>sql/schedule.sql</code> contains only placeholder values &mdash; never commit real project refs or service-role keys.</p>
+        </div>
+      </div>
+
+      <!-- Known follow-ups -->
+      <div class="subsection">
+        <p class="subsection-label">Known limitations</p>
+        <h3>Consciously deferred follow-ups</h3>
+        <p>These were surfaced by a holistic code review and are non-blocking but worth knowing before extending the code:</p>
+
+        <ul class="followup-list">
+          <li>
+            <strong>Terminal <code>once</code>+<code>triggered</code> alerts are still loaded every poll.</strong> <code>loadActiveAlerts</code> filters only on <code>expire_at</code>, so a fired <code>once</code> alert is re-fetched and re-evaluated to <code>noop</code> each tick, and its market is still polled even if no live alert needs it. Harmless at small scale. A future optimisation: add a filter so terminal alerts drop out &mdash; verify against a real DB first, as there are no DB-integration tests.
+          </li>
+          <li>
+            <strong><code>decide()</code> returns <code>nextState</code> but the orchestrator ignores it.</strong> <code>recordFire</code>/<code>recordRearm</code> hardcode the target state, which matches <code>nextState</code> on every current path. If a third state is ever added, wire <code>nextState</code> through instead of hardcoding.
+          </li>
+          <li>
+            <strong>Alert message links to <code>polymarket.com/event/${slug}</code> using the market slug.</strong> For binary events the event and market slugs coincide (true for the seeded Strait of Hormuz market), but they can differ for multi-outcome events. Revisit with multi-outcome support.
+          </li>
+          <li>
+            <strong><code>buildAlertMessage</code> does not HTML-escape <code>label</code>.</strong> Safe now (labels are operator-set via <code>seed.sql</code>). Add escaping when the web-app phase lets users supply labels, since <code>parse_mode: "HTML"</code> would break or allow injection on <code>&lt;</code>/<code>&amp;</code>.
+          </li>
+        </ul>
+
+        <div class="callout callout-note">
+          <p class="callout-title">Deliberately deferred to Phase 2 &mdash; do not build now</p>
+          <p><code>direction</code> field (above/below threshold), reversible pause via a <code>status</code> enum, multi-channel notifications, multi-user auth, cooldown/debounce/nag strategies, multi-outcome (non-binary) market support.</p>
+        </div>
+      </div>
+
+      <!-- Changelog -->
+      <div class="subsection">
+        <p class="subsection-label">History</p>
+        <h3>Changelog</h3>
+
+        <div class="changelog-entry">
+          <span class="changelog-date">2026-06-14</span>
+          <div class="changelog-items">
+            <ul>
+              <li>Created shared-supabase-namespacing context &mdash; schema isolation + prefixing for sharing one Supabase project across mini-projects (2-project free-tier cap)</li>
+              <li>Updated platform-choice context &mdash; noted the Supabase project is shared, not dedicated; cross-linked namespacing</li>
+              <li>Created alerting-strategy-design context &mdash; once vs hysteresis strategies, flip-flop deadband rationale, deferred strategies</li>
+              <li>Created data-model-decoupling context &mdash; markets/alerts split, channel-not-split boundary, expire_at over is_active</li>
+              <li>Created platform-choice context &mdash; Supabase chosen over AWS Lambda and Vercel</li>
+              <li>Created alert-delivery-reliability context &mdash; send-first/persist-on-200 invariant</li>
+              <li>Created polymarket-integration-scope context &mdash; binary-only scope, Gamma API quirks</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── FOOTER ────────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="prose">
+      <p>Polymarket &rarr; Telegram Threshold Alerts &middot; Phase 1 &middot; Personal script</p>
+      <p>Supabase + Deno Edge Functions + Telegram Bot API</p>
+    </div>
+  </footer>
+
+  <!-- ── MERMAID ───────────────────────────────────────────────────────── -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        primaryColor:           '#FDF0DC',
+        primaryBorderColor:     '#E0922F',
+        primaryTextColor:       '#211C16',
+        lineColor:              '#6B6057',
+        secondaryColor:         '#DCF0EC',
+        tertiaryColor:          '#FBF8F2',
+        edgeLabelBackground:    '#FBF8F2',
+        clusterBkg:             '#FDF0DC',
+        titleColor:             '#211C16',
+        nodeBorder:             '#E0922F',
+        mainBkg:                '#FDF0DC',
+        stateBkg:               '#FDF0DC',
+        stateBorder:            '#E0922F',
+        labelColor:             '#211C16',
+        actorBkg:               '#FDF0DC',
+        actorBorder:            '#E0922F',
+        actorTextColor:         '#211C16',
+        actorLineColor:         '#6B6057',
+        labelBoxBkgColor:       '#FDF0DC',
+        labelBoxBorderColor:    '#E0922F',
+        signalColor:            '#6B6057',
+        signalTextColor:        '#211C16',
+        noteBkgColor:           '#DCF0EC',
+        noteBorderColor:        '#0E7C6B',
+        noteTextColor:          '#211C16',
+        activationBkgColor:     '#FDF0DC',
+        activationBorderColor:  '#E0922F',
+      },
+      flowchart:  { curve: 'basis', htmlLabels: true },
+      sequence:   { mirrorActors: false },
+    });
+  </script>
+
+</body>
+</html>
