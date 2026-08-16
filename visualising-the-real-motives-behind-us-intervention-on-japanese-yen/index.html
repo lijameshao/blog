@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yen Intervention Terminal</title>
+<meta name="description" content="A causal map of what the US Treasury's July 2026 yen intervention is actually protecting, and the scenarios where the bet survives or breaks.">
+<meta name="color-scheme" content="dark">
+<style>
+:root{
+  --bg:#000000;
+  --panel:#08080a;
+  --panel2:#0d0d10;
+  --line:#242018;
+  --line2:#38301f;
+  --amber:#ff9d21;
+  --amber-hi:#ffc46b;
+  --amber-dim:#8a5c14;
+  --ink:#d9d3c6;
+  --ink-dim:#7d766a;
+  --cyan:#5cc8dd;
+  --cyan-dim:#2b6b7a;
+  --violet:#b98cff;
+  --violet-dim:#5c4585;
+  --green:#3ce27c;
+  --red:#ff4d43;
+  --mono:"Berkeley Mono","SF Mono","SFMono-Regular","Menlo","DejaVu Sans Mono","Liberation Mono","Consolas",monospace;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);font-family:var(--mono);
+  font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.018) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
+button:focus-visible,a:focus-visible{outline:2px solid var(--amber-hi);outline-offset:-2px}
+/* flex children default to min-width:auto, which lets long text push the
+   page wider than the viewport and breaks the fit-to-width calculation */
+.masthead>*,.ptitle>*,.driver>*,.lg>*,.blk>*,.cx>*,.scen button>*{min-width:0;overflow-wrap:anywhere}
+
+/* ─── chrome ─── */
+.ticker{border-bottom:1px solid var(--line2);background:#050403;overflow:hidden;white-space:nowrap;height:26px;display:flex;align-items:center}
+.ticker .track{display:inline-block;padding-left:100%;animation:march 54s linear infinite;font-size:11.5px;letter-spacing:.07em}
+.ticker b{color:var(--amber);font-weight:400}
+.ticker .up{color:var(--red)}
+.ticker .sep{color:var(--line2);padding:0 14px}
+@keyframes march{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+
+header.masthead{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding:12px 18px 10px;
+  border-bottom:1px solid var(--line2);background:linear-gradient(180deg,#100c05,#000)}
+.masthead h1{margin:0;font-size:16px;font-weight:400;letter-spacing:.18em;color:var(--amber);text-transform:uppercase}
+.masthead .sub{font-size:11px;color:var(--ink-dim);letter-spacing:.09em}
+.masthead .stamp{margin-left:auto;font-size:11px;color:var(--amber-dim);letter-spacing:.1em}
+
+.fnbar{display:flex;gap:1px;background:var(--line);border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.fnbar button{font:inherit;font-size:11px;letter-spacing:.1em;padding:6px 14px;border:0;cursor:pointer;
+  background:#0b0906;color:var(--ink-dim);text-transform:uppercase;transition:.12s}
+.fnbar button .k{color:var(--amber-dim);margin-right:7px}
+.fnbar button:hover{background:#171208;color:var(--ink)}
+.fnbar button.on{background:var(--amber);color:#000}
+.fnbar button.on .k{color:#5c3800}
+.fnbar button.on.g{background:var(--green)}
+.fnbar button.on.g .k{color:#00401c}
+.fnbar button.on.r{background:var(--red);color:#150000}
+.fnbar button.on.r .k{color:#5c0000}
+
+/* ─── shell ─── */
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 346px;gap:1px;background:var(--line)}
+@media (max-width:1080px){.shell{grid-template-columns:minmax(0,1fr)}}
+.pane{background:var(--panel);min-width:0}
+.ptitle{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;background:var(--amber);color:#000;padding:3px 10px;
+  font-size:10.5px;letter-spacing:.16em;text-transform:uppercase}
+.ptitle .r{margin-left:auto;color:#5c3800;letter-spacing:.1em}
+.ptitle.q{background:#171208;color:var(--amber);border-bottom:1px solid var(--line2)}
+.ptitle.q .r{color:var(--amber-dim)}
+
+/* ─── map ─── */
+.mapwrap{overflow:auto;background:radial-gradient(circle at 24% 16%,rgba(255,157,33,.05),transparent 52%),
+  radial-gradient(circle at 88% 28%,rgba(92,200,221,.045),transparent 50%),#000}
+#canvas{position:relative;width:1520px;height:1650px}
+#canvas>*:not(.grid){transform:translateX(44px)}
+#canvas .grid{position:absolute;inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:40px 40px;opacity:.34}
+#wires{position:absolute;inset:0;width:1440px;height:1650px;overflow:visible}
+
+/* column headers */
+.chead{position:absolute;display:flex;align-items:center;gap:10px;padding:0 12px;
+  border:1px solid;font-size:12px;letter-spacing:.22em;text-transform:uppercase}
+.chead .fl{flex:0 0 auto;display:flex;width:22px;height:13px;border:1px solid rgba(0,0,0,.5)}
+.chead .rr{margin-left:auto;font-size:9.5px;letter-spacing:.13em;opacity:.72}
+.chead.us{border-color:var(--amber-dim);color:var(--amber);background:rgba(255,157,33,.07)}
+.chead.mid{border-color:var(--violet-dim);color:var(--violet);background:rgba(185,140,255,.06)}
+.chead.jp{border-color:var(--cyan-dim);color:var(--cyan);background:rgba(92,200,221,.06)}
+
+.zone{position:absolute;border:1px solid var(--line2)}
+.zone.us{border-color:#3a2a10;background:rgba(255,157,33,.017)}
+.zone.mid{border-color:#2e2440;background:rgba(185,140,255,.017)}
+.zone.jp{border-color:#12333b;background:rgba(92,200,221,.017)}
+.zone .zn{position:absolute;bottom:7px;right:12px;font-size:9.5px;letter-spacing:.14em;color:#3a3227}
+
+.band{position:absolute;border-top:1px dashed #2d2718;pointer-events:none}
+.band span{position:absolute;top:-8px;left:420px;background:#000;padding:0 8px;font-size:9.5px;
+  letter-spacing:.2em;color:#5d5340;text-transform:uppercase}
+
+/* nodes */
+a.node{
+  position:absolute;border:1px solid var(--line2);background:#0a0908;padding:7px 9px 6px;
+  text-decoration:none;display:block;overflow:hidden;
+  transition:border-color .16s,background .16s,opacity .18s,box-shadow .16s;
+}
+.node .hd{display:flex;align-items:center;gap:6px;margin-bottom:1px}
+.node .gl{flex:0 0 13px;width:13px;height:13px;opacity:.85}
+.node .tag{font-size:8.5px;letter-spacing:.17em;color:var(--amber-dim);text-transform:uppercase;white-space:nowrap}
+.node .lever{font-size:8px;letter-spacing:.14em;padding:1px 4px;border:1px solid currentColor;text-transform:uppercase}
+.node .fl{margin-left:auto;flex:0 0 auto;display:flex;width:19px;height:11px;opacity:.9}
+.node .lb{font-size:12px;letter-spacing:.045em;color:var(--amber);margin:2px 0 3px;line-height:1.2;text-transform:uppercase}
+.node .sb{font-size:10.5px;line-height:1.34;color:var(--ink-dim)}
+.node .go{position:absolute;right:6px;bottom:4px;font-size:9px;letter-spacing:.1em;color:#4a443a;opacity:0;transition:.15s}
+a.node:hover{border-color:currentColor;background:#14100a}
+a.node:hover .go{opacity:1}
+
+.node[data-side="us"]{color:var(--amber)} .node[data-side="us"] .lb{color:var(--amber)} .node[data-side="us"] .tag{color:var(--amber-dim)} .node[data-side="us"] .gl{color:var(--amber-dim)}
+.node[data-side="mid"]{color:var(--violet)} .node[data-side="mid"] .lb{color:var(--violet)} .node[data-side="mid"] .tag{color:var(--violet-dim)} .node[data-side="mid"] .gl{color:var(--violet-dim)}
+.node[data-side="jp"]{color:var(--cyan)} .node[data-side="jp"] .lb{color:var(--cyan)} .node[data-side="jp"] .tag{color:var(--cyan-dim)} .node[data-side="jp"] .gl{color:var(--cyan-dim)}
+.node[data-lever="1"]{border-style:solid;border-width:1px;box-shadow:inset 3px 0 0 currentColor}
+.node[data-lever="1"] .lever{color:inherit}
+.node.threat{border-color:#7a2b23;background:#150705;box-shadow:inset 3px 0 0 #ff5e50}
+.node.threat .lb{color:#ff7a6b}
+.node.blocked{border-style:dashed}
+
+.node.dim{opacity:.13}
+.node.hot{background:#171006;box-shadow:0 0 0 1px currentColor,0 0 24px -6px currentColor,inset 3px 0 0 currentColor}
+.node.hot.g{color:var(--green);border-color:var(--green)} .node.hot.g .lb{color:var(--green)} .node.hot.g .sb{color:#8fd7ab} .node.hot.g .tag,.node.hot.g .gl{color:#2b9c58}
+.node.hot.r{color:var(--red);border-color:var(--red);background:#180605} .node.hot.r .lb{color:var(--red)} .node.hot.r .sb{color:#e0a09b} .node.hot.r .tag,.node.hot.r .gl{color:#a6362f}
+
+/* outcome */
+.outcome{position:absolute;border:1px solid var(--amber);background:#0b0806;padding:0;overflow:hidden}
+.outcome .oh{background:var(--amber);color:#000;padding:4px 12px;font-size:11px;letter-spacing:.18em;display:flex}
+.outcome .oh .r{margin-left:auto;color:#5c3800}
+.outcome .ob{padding:16px 20px;display:grid;grid-template-columns:320px 1fr;gap:28px;align-items:start}
+.outcome .badge{font-size:44px;letter-spacing:.08em;line-height:1;color:var(--amber);margin-bottom:5px}
+.outcome .cond{font-size:10.5px;letter-spacing:.16em;color:var(--amber-dim);text-transform:uppercase}
+.outcome .txt{font-size:12px;line-height:1.6;color:var(--ink);max-width:95ch}
+.outcome.g{border-color:var(--green)} .outcome.g .oh{background:var(--green)} .outcome.g .badge{color:var(--green)} .outcome.g .cond{color:#6fae89}
+.outcome.r{border-color:var(--red)} .outcome.r .oh{background:var(--red);color:#150000} .outcome.r .oh .r{color:#5c0000} .outcome.r .badge{color:var(--red)} .outcome.r .cond{color:#b06a64}
+
+/* wires */
+.wire{fill:none;stroke:var(--amber-dim);stroke-width:1.4}
+.wire.jp{stroke:var(--cyan-dim)}
+.wire.mid{stroke:var(--violet-dim)}
+.wire.feedback{stroke:#d07d18;stroke-width:2.8}
+.wire.blocked{stroke:#2b6b7a;stroke-dasharray:5 4}
+.wire.sabotage{stroke:#8c2d4d;stroke-dasharray:7 4}
+.wire.note{stroke:#3d3550;stroke-dasharray:2 4}
+.wire.resolve{stroke:var(--amber);stroke-width:2.4}
+.head{fill:var(--amber-dim)}
+.head.jp{fill:var(--cyan-dim)} .head.mid{fill:var(--violet-dim)}
+.head.feedback{fill:#d07d18} .head.blocked{fill:#2b6b7a} .head.sabotage{fill:#8c2d4d} .head.note{fill:#3d3550}
+.head.resolve{fill:var(--amber)}
+.elab{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;fill:var(--amber-dim);text-transform:uppercase}
+.elab.jp{fill:var(--cyan-dim)} .elab.mid{fill:var(--violet-dim)}
+.elab.feedback{fill:var(--amber-hi);font-size:10.5px}
+.elab.blocked{fill:var(--cyan-dim)} .elab.sabotage{fill:#d4547d}
+.elab.resolve{fill:var(--amber)}
+.elabbg{fill:#000}
+g.edge.dim{opacity:.09}
+g.edge.hot .wire{stroke:var(--hotc);stroke-width:2.4;stroke-dasharray:9 6;animation:ants .8s linear infinite}
+g.edge.hot .head{fill:var(--hotc)}
+g.edge.hot .elab{fill:var(--hotc)}
+@keyframes ants{to{stroke-dashoffset:-30}}
+
+/* ─── rail ─── */
+.rail{background:var(--panel);display:flex;flex-direction:column;gap:1px}
+.card{background:var(--panel2)}
+.card .body{padding:10px 12px 12px}
+.scen{display:flex;flex-direction:column;gap:1px;background:var(--line)}
+.scen button{font:inherit;text-align:left;border:0;cursor:pointer;padding:8px 12px;background:#0a0908;color:var(--ink-dim);
+  display:flex;align-items:center;gap:9px;transition:.12s}
+.scen button:hover{background:#14100a;color:var(--ink)}
+.scen button .dot{width:7px;height:7px;flex:0 0 7px;background:#33302a}
+.scen button .fl{flex:0 0 auto;display:flex;width:17px;height:10px;opacity:.85}
+.scen button .nm{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase}
+.scen button .vd{margin-left:auto;font-size:9.5px;letter-spacing:.13em;color:#4a453c}
+.scen button.g .dot{background:var(--green)} .scen button.r .dot{background:var(--red)}
+.scen button.g .vd{color:var(--green)} .scen button.r .vd{color:var(--red)}
+.scen button.act{background:#1a1409;color:var(--amber-hi)}
+.scen button.act.g{background:#08170e;color:var(--green)}
+.scen button.act.r{background:#170707;color:var(--red)}
+
+.driver{display:flex;align-items:center;gap:9px;padding:7px 12px;background:#0a0908;border-bottom:1px solid var(--line)}
+.driver .fl{flex:0 0 auto;display:flex;width:22px;height:13px}
+.driver .k{font-size:9px;letter-spacing:.18em;color:var(--ink-dim);text-transform:uppercase}
+.driver .v{font-size:11.5px;letter-spacing:.06em;color:var(--amber);text-transform:uppercase;line-height:1.25}
+
+#verdict{font-size:11.5px;line-height:1.6;color:var(--ink)}
+#verdict .h{display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px;color:var(--amber)}
+#verdict.g .h{color:var(--green)} #verdict.r .h{color:var(--red)}
+#verdict .cursor{display:inline-block;width:7px;height:12px;background:var(--amber);vertical-align:-2px;margin-left:3px;animation:blink 1.05s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+.row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:5px 0;border-bottom:1px solid #16130e;align-items:baseline}
+.row:last-child{border-bottom:0}
+.row .k{font-size:10.5px;letter-spacing:.07em;color:var(--ink-dim);text-transform:uppercase}
+.row .v{font-size:12.5px;color:var(--amber);letter-spacing:.04em;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.row .v.bad{color:var(--red)}
+.row .n{grid-column:1/-1;font-size:9.5px;letter-spacing:.09em;color:#575149;margin-top:-2px}
+
+.lg{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:10.5px;color:var(--ink-dim)}
+.lg .sw{flex:0 0 26px;height:12px;display:flex;align-items:center}
+.lg .fl{flex:0 0 auto;display:flex;width:19px;height:11px}
+.lg b{font-weight:400;color:var(--ink)}
+
+/* ─── bottom strip ─── */
+.strip{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-top:1px solid var(--line2)}
+@media (max-width:860px){.strip{grid-template-columns:1fr}}
+@media (max-width:620px){.ptitle .r{display:none}.masthead .stamp{margin-left:0}}
+.strip .pane{background:var(--panel2)}
+.strip .body{padding:12px 14px 14px}
+.cx{display:grid;grid-template-columns:1fr 22px 1fr;gap:6px 10px;align-items:center;margin-bottom:9px}
+.cx:last-child{margin-bottom:0}
+.cx .w{font-size:11px;color:var(--ink);letter-spacing:.03em;border-left:2px solid var(--amber-dim);padding-left:8px}
+.cx .x{text-align:center;color:var(--red);font-size:13px}
+.blk{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #16130e;font-size:11px;line-height:1.45}
+.blk:last-child{border-bottom:0}
+.blk .no{color:var(--cyan-dim);font-size:10px;letter-spacing:.1em;flex:0 0 22px}
+.blk .tx{color:var(--ink)}
+.blk .tx em{color:var(--cyan);font-style:normal}
+.tail{margin-top:11px;font-size:11px;color:var(--ink-dim);line-height:1.55;border-top:1px solid #16130e;padding-top:10px}
+
+/* ─── narrow-screen chain view ─── */
+#chain{display:none;padding:14px 12px 22px}
+@media (max-width:760px){
+  .mapwrap{display:none}
+  #chain{display:block}
+}
+#chain .ocard{border:1px solid var(--amber);background:#0b0806;margin-bottom:14px}
+#chain .ocard .oh{background:var(--amber);color:#000;padding:4px 11px;font-size:10.5px;letter-spacing:.16em;display:flex;text-transform:uppercase}
+#chain .ocard .oh .r{margin-left:auto;color:#5c3800}
+#chain .ocard .ob{padding:13px 14px 15px}
+#chain .ocard .badge{font-size:32px;line-height:1;letter-spacing:.06em;color:var(--amber)}
+#chain .ocard .cond{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--amber-dim);margin:5px 0 10px}
+#chain .ocard .txt{font-size:11.5px;line-height:1.6;color:var(--ink)}
+#chain .ocard.g{border-color:var(--green)} #chain .ocard.g .oh{background:var(--green)} #chain .ocard.g .badge{color:var(--green)} #chain .ocard.g .cond{color:#6fae89}
+#chain .ocard.r{border-color:var(--red)} #chain .ocard.r .oh{background:var(--red);color:#150000} #chain .ocard.r .oh .r{color:#5c0000} #chain .ocard.r .badge{color:var(--red)} #chain .ocard.r .cond{color:#b06a64}
+
+#chain .chd{display:flex;align-items:center;gap:9px;padding:8px 11px;background:#0a0908;border:1px solid var(--line);margin-bottom:14px;font-size:11px}
+#chain .chd .fl{flex:0 0 auto;display:flex;width:22px;height:13px}
+#chain .chd b{font-weight:400;color:var(--ink-dim);letter-spacing:.14em;font-size:9px;text-transform:uppercase;display:block}
+#chain .chd i{font-style:normal;color:var(--amber);text-transform:uppercase;letter-spacing:.05em}
+#chain .cnote{font-size:11px;line-height:1.6;color:var(--ink-dim);margin:0 0 14px}
+#chain .ghd{display:flex;align-items:center;gap:9px;margin:20px 0 10px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding-bottom:5px;border-bottom:1px solid var(--line2)}
+#chain .ghd .fl{flex:0 0 auto;display:flex;width:22px;height:13px}
+#chain .ghd.us{color:var(--amber)} #chain .ghd.mid{color:var(--violet)} #chain .ghd.jp{color:var(--cyan)}
+#chain .ghd.rsp{color:var(--amber-dim);border-color:#2d2718}
+
+a.step{position:relative;display:block;text-decoration:none;background:#0a0908;
+  border:1px solid var(--line2);border-left:3px solid currentColor;padding:9px 11px 8px 12px}
+a.step+a.step{margin-top:8px}
+.step .num{position:absolute;top:8px;right:10px;font-size:9.5px;letter-spacing:.14em;color:currentColor;opacity:.5}
+.step .hd{display:flex;align-items:center;gap:6px;margin-bottom:2px;padding-right:26px}
+.step .gl{flex:0 0 13px;width:13px;height:13px}
+.step .tag{font-size:8.5px;letter-spacing:.17em;text-transform:uppercase;opacity:.85}
+.step .lever{font-size:8px;letter-spacing:.14em;padding:1px 4px;border:1px solid currentColor;text-transform:uppercase}
+.step .fl{margin-left:auto;flex:0 0 auto;display:flex;width:19px;height:11px}
+.step .lb{font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;line-height:1.2;margin:2px 0 4px}
+.step .sb{font-size:11px;line-height:1.45;color:var(--ink-dim)}
+.step .ts{font-size:9.5px;letter-spacing:.1em;color:#5a5348;margin-top:5px}
+.step[data-side="us"]{color:var(--amber)} .step[data-side="mid"]{color:var(--violet)} .step[data-side="jp"]{color:var(--cyan)}
+.step.g{color:var(--green);border-color:#1e6b3e;border-left-color:var(--green);background:#08130c}
+.step.r{color:var(--red);border-color:#6b2320;border-left-color:var(--red);background:#140605}
+
+.conn{display:flex;align-items:center;gap:9px;padding:3px 0 3px 5px;color:var(--amber-dim)}
+.conn.g{color:var(--green)} .conn.r{color:var(--red)}
+.conn .ln{flex:0 0 2px;width:2px;height:30px;background:currentColor;opacity:.55}
+.conn.bare .ln{height:14px}
+.conn .cl{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase}
+.conn .cl::before{content:"↓ ";opacity:.7}
+
+footer{padding:12px 18px 30px;border-top:1px solid var(--line2);font-size:10.5px;color:#4f4940;letter-spacing:.07em;line-height:1.7}
+footer b{color:var(--amber-dim);font-weight:400}
+footer a{color:var(--cyan-dim)}
+
+#tip{position:fixed;z-index:120;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:#000;border:1px solid var(--amber);padding:6px 9px;max-width:290px;font-size:10.5px;line-height:1.4;color:var(--ink)}
+#tip .t{color:var(--amber);letter-spacing:.14em;font-size:9.5px;display:block;margin-bottom:3px}
+#tip .go{display:block;margin-top:5px;color:var(--cyan);letter-spacing:.12em;font-size:9.5px}
+
+@media (prefers-reduced-motion:reduce){
+  .ticker .track{animation:none;padding-left:0}
+  g.edge.hot .wire{animation:none}
+  #verdict .cursor{animation:none}
+  *{transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<div class="ticker"><div class="track" id="tk"></div></div>
+
+<header class="masthead">
+  <h1>US Treasury &middot; JPY Intervention</h1>
+  <span class="sub">CAUSAL MAP &mdash; WHO DECIDES WHAT, AND WHERE THE BET BREAKS</span>
+  <span class="stamp">SRC: BOYLE, P. &mdash; 15 AUG 2026</span>
+</header>
+
+<nav class="fnbar" id="fnbar"></nav>
+
+<div class="shell">
+  <section class="pane">
+    <div class="ptitle">Causal map <span class="r" id="maphint">click a scenario to trace a path &middot; click a node to open the video at that moment</span></div>
+    <div class="mapwrap">
+      <div id="canvas">
+        <div class="grid"></div>
+        <svg id="wires" viewBox="0 0 1440 1650" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+    <div id="chain"></div>
+  </section>
+
+  <aside class="rail">
+    <div class="card">
+      <div class="ptitle q">Scenario <span class="r">F1&ndash;F5</span></div>
+      <div class="scen" id="scen"></div>
+    </div>
+    <div class="card">
+      <div class="ptitle q">Verdict</div>
+      <div class="driver"><span class="fl" id="dflag"></span><span><span class="k">Decided by</span><br><span class="v" id="dwho"></span></span></div>
+      <div class="body"><div id="verdict"></div></div>
+    </div>
+    <div class="card">
+      <div class="ptitle q">Legend</div>
+      <div class="body" id="legend"></div>
+    </div>
+    <div class="card">
+      <div class="ptitle q">Rates &amp; auctions <span class="r">the live verdict</span></div>
+      <div class="body">
+        <div class="row"><span class="k">30Y auction, cleared</span><span class="v bad">5.22%</span><span class="n">$25BN SOLD &middot; HIGHEST 30Y COST SINCE AUGUST 2001</span></div>
+        <div class="row"><span class="k">30Y yield</span><span class="v bad">&gt;5.00%</span><span class="n">FIRST TIME ABOVE 5% SINCE THE FINANCIAL CRISIS</span></div>
+        <div class="row"><span class="k">10Y yield</span><span class="v bad">~4.60%</span><span class="n">WAS ~4.00% EARLY LAST YEAR</span></div>
+        <div class="row"><span class="k">10Y note auction</span><span class="v bad">HIGH '07</span><span class="n">$42BN SOLD AT THE HIGHEST YIELD SINCE 2007</span></div>
+        <div class="row"><span class="k">Fed funds / BoJ policy</span><span class="v">4.00 / 1.00</span><span class="n">THE GAP THAT FUNDS THE ENTIRE CARRY TRADE</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ptitle q">Structural pressure <span class="r">slow weights</span></div>
+      <div class="body">
+        <div class="row"><span class="k">Convenience yield</span><span class="v bad">&le; 0</span><span class="n">DU ET AL &mdash; THE PREMIUM FOR BEING SPECIAL HAS GONE</span></div>
+        <div class="row"><span class="k">US debt / GDP</span><span class="v bad">NEAR RECORD</span><span class="n">AND STILL SPENDING MORE THAN IT COLLECTS</span></div>
+        <div class="row"><span class="k">Japan's UST holdings</span><span class="v">&gt;$1.0TRN</span><span class="n">LARGEST FOREIGN HOLDER OF US GOVERNMENT DEBT</span></div>
+        <div class="row"><span class="k">Global carry trade</span><span class="v">~$4.0TRN</span><span class="n">LARGER THAN THE ENTIRE ECONOMY OF INDIA</span></div>
+        <div class="row"><span class="k">Intervention spend</span><span class="v">$88BN</span><span class="n">YEN +5% TO 155, THEN BACK PAST 159 IN TWO WEEKS</span></div>
+        <div class="row"><span class="k">USD/JPY vs fair value</span><span class="v">159 / 62</span><span class="n">KATSU CURRY INDEX &middot; BIG MAC SAYS 80 &middot; ~60% UNDERVALUED</span></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="strip">
+  <section class="pane">
+    <div class="ptitle q">Washington's contradiction <span class="r">&ldquo;cakeism&rdquo; &middot; obstfeld, peterson institute &middot; 26:08</span></div>
+    <div class="body">
+      <div class="cx"><span class="w">Wants a weaker dollar</span><span class="x">&times;</span><span class="w">Wants no inflation</span></div>
+      <div class="cx"><span class="w">Wants low borrowing costs</span><span class="x">&times;</span><span class="w">Wants enormous deficits</span></div>
+      <div class="cx"><span class="w">Wants Japan to keep buying its bonds</span><span class="x">&times;</span><span class="w">Wants to help Japan lift the yen</span></div>
+      <div class="cx"><span class="w">Spends reserves propping the yen up</span><span class="x">&times;</span><span class="w">Runs a trade policy that pushes it down</span></div>
+      <div class="tail">You can want all of those things. You cannot have all of those things. Sooner or later the bond market sends you the bill.</div>
+    </div>
+  </section>
+  <section class="pane">
+    <div class="ptitle q">Tokyo's constraint <span class="r">why the clean exit stays shut &middot; 30:10&ndash;31:31</span></div>
+    <div class="body">
+      <div class="blk"><span class="no">01</span><span class="tx">Governor Ueda knows inflation is above 2% and has <em>signalled more hikes</em>. He is not the blocker.</span></div>
+      <div class="blk"><span class="no">02</span><span class="tx">The new Prime Minister is <em>deeply averse to higher borrowing costs</em> and prefers to reflate with fiscal stimulus.</span></div>
+      <div class="blk"><span class="no">03</span><span class="tx">Japan's debt is already <em>more than 200% of its economy</em>.</span></div>
+      <div class="blk"><span class="no">04</span><span class="tx">Servicing that debt already eats <em>a quarter of government spending</em>. Every hike makes that worse.</span></div>
+      <div class="blk"><span class="no">05</span><span class="tx">Two former Bank of Japan governors were <em>assassinated</em> after controversial monetary experiments in the 1930s. Their portraits still hang there.</span></div>
+      <div class="tail">The one move that fixes the yen at source without a single Treasury changing hands is the one move Washington cannot make.</div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <b>SOURCE</b> &nbsp;Patrick Boyle, &ldquo;The Insane US-Japan Currency Bailout&rdquo;, 15 August 2026 &mdash; <a href="https://youtu.be/yh18YXKMk3g" target="_blank" rel="noopener">youtu.be/yh18YXKMk3g</a>. Every figure here comes from that transcript. Click any node to open the video at the moment it is discussed.<br>
+  <b>CITED WITHIN</b> &nbsp;Wenxin Du et al. (Harvard) on the Treasury convenience yield &middot; Maurice Obstfeld (Peterson Institute) on cakeism &middot; Barry Eichengreen and Katie Martin (FT) &middot; Jeff Yu (BNY Mellon) on the Katsu Curry Index &middot; Toby Nangle (Unhedged) on the euro leg &middot; Gillian Tett (FT) on the Bank of Japan.<br>
+  <b>NOTE</b> &nbsp;A causal map, not a forecast. Arrow direction is the claimed direction of causation in the source. Scenario probabilities are deliberately absent.
+</footer>
+
+<div id="tip"></div>
+
+<script>
+const VIDEO='https://youtu.be/yh18YXKMk3g';
+const secs = t => t.split(':').reduce((a,b)=>a*60+ +b,0);
+
+/* ══ flags & glyphs ══════════════════════════════════════════════ */
+const FLAG={
+ us:'<svg viewBox="0 0 19 10" aria-hidden="true"><rect width="19" height="10" fill="#b9202c"/><rect y="1.43" width="19" height="1.43" fill="#e8e4dc"/><rect y="4.29" width="19" height="1.43" fill="#e8e4dc"/><rect y="7.14" width="19" height="1.43" fill="#e8e4dc"/><rect width="8.2" height="5.72" fill="#1c3578"/></svg>',
+ jp:'<svg viewBox="0 0 19 10" aria-hidden="true"><rect width="19" height="10" fill="#e8e4dc"/><circle cx="9.5" cy="5" r="2.9" fill="#bc002d"/></svg>',
+ mid:'<svg viewBox="0 0 19 10" aria-hidden="true"><rect width="9.5" height="10" fill="#1c3578"/><rect x="9.5" width="9.5" height="10" fill="#bc002d"/><path d="M4 3.4h11M4 6.6h11" stroke="#e8e4dc" stroke-width="1"/><path d="M13 1.8l2 1.6-2 1.6M6 5l-2 1.6 2 1.6" fill="none" stroke="#e8e4dc" stroke-width="1"/></svg>',
+ none:'<svg viewBox="0 0 19 10" aria-hidden="true"><rect width="19" height="10" fill="#141210"/><path d="M2 5h15" stroke="#4a443a" stroke-width="1"/></svg>'
+};
+const G={
+ stack:'<rect x="2" y="10.5" width="12" height="2.6"/><rect x="3.5" y="6.6" width="9" height="2.6"/><rect x="5" y="2.7" width="6" height="2.6"/>',
+ press:'<path d="M8 1.5v7.5M5 6l3 3 3-3M2.5 12.5h11"/>',
+ heat:'<path d="M8.2 1.5c.2 3-2.9 3.3-2.9 6.2a2.9 2.9 0 005.8 0c0-1.4-.9-2-.9-3.4 0 0 2.1 1.3 2.1 3.7A4.4 4.4 0 018 14.4"/>',
+ gem:'<path d="M8 2l5 4-5 8-5-8z"/><path d="M2.2 13.4L13.8 2.6"/>',
+ up:'<path d="M2 12.2l3.6-3.8 2.7 2.8L13.6 4"/><path d="M10.2 4h3.6v3.6"/>',
+ fork:'<path d="M8 14.2V8.4M8 8.4L3.2 3.2M8 8.4l4.8-5.2"/><circle cx="8" cy="8.4" r="1.4"/>',
+ bill:'<rect x="1.8" y="4" width="12.4" height="8"/><path d="M4.3 7h7.4M4.3 9.4h4.4"/>',
+ dice:'<rect x="2.4" y="2.4" width="11.2" height="11.2"/><circle cx="5.9" cy="5.9" r=".95"/><circle cx="10.1" cy="10.1" r=".95"/><circle cx="10.1" cy="5.9" r=".95"/>',
+ wall:'<rect x="1.8" y="3" width="12.4" height="10"/><path d="M1.8 6.3h12.4M1.8 9.6h12.4M6 3v3.3M10 6.3v3.3M6 9.6v3.4"/>',
+ bolt:'<path d="M9.2 1.6L4 8.8h3.4L6.8 14.4 12 7.2H8.6z"/>',
+ caliper:'<path d="M2 4.6h5M9 11.4h5M3.6 4.6v6.8M12.4 11.4V4.6"/><path d="M3.6 8h8.8"/>',
+ cycle:'<path d="M13.4 8a5.4 5.4 0 11-2-4.2"/><path d="M14 1.8v3.4h-3.4"/>',
+ coin:'<circle cx="8" cy="8" r="5.6"/><path d="M5.9 5.3L8 8.2l2.1-2.9M8 8.2v3.3M6.2 9.2h3.6"/>',
+ drop:'<path d="M8 1.8s4.1 5.1 4.1 7.6a4.1 4.1 0 11-8.2 0C3.9 6.9 8 1.8 8 1.8z"/>',
+ shield:'<path d="M8 1.8l5.2 2v4.1c0 3.3-2.3 5.5-5.2 6.3-2.9-.8-5.2-3-5.2-6.3V3.8z"/>',
+ dump:'<rect x="2.8" y="1.8" width="10.4" height="7"/><path d="M8 9.8v4.4M5.3 11.6L8 14.3l2.7-2.7"/>',
+ hand:'<path d="M4 8.4V4.6a1.25 1.25 0 012.5 0v3.4M6.5 7.8V3.2a1.25 1.25 0 012.5 0v4.4M9 8V4.5a1.25 1.25 0 012.5 0v4.7c0 3-1.9 5.1-4.5 5.1S3.1 12.6 3.1 10.6L4.2 9.2"/>',
+ lock:'<rect x="2.8" y="6.8" width="10.4" height="7.2"/><path d="M5.4 6.8V4.7a2.6 2.6 0 015.2 0v2.1"/>',
+ hole:'<circle cx="8" cy="8" r="5.7"/><path d="M4.2 4.2l7.6 7.6"/>',
+ flagpole:'<path d="M4 14V2M4 2.6h8.4l-1.8 2.6 1.8 2.6H4"/>'
+};
+const gl=k=>`<svg class="gl" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" aria-hidden="true">${G[k]}</svg>`;
+
+/* ══ ticker ══════════════════════════════════════════════════════ */
+const TICK=[['USD/JPY','159.00','up'],['30Y UST AUCTION','5.22%','up'],['30Y UST','>5.00%','up'],
+ ['10Y UST','4.60%','up'],['FED FUNDS','~4.00%',''],['BOJ POLICY','1.00%',''],['CARRY TRADE','$4.0TRN',''],
+ ['JAPAN UST HOLDINGS','$1.0TRN',''],['ESF INTERVENTION','$88BN',''],['CONVENIENCE YIELD','NEGATIVE','up'],
+ ['JPY FAIR VALUE / CURRY','62',''],['JPY FAIR VALUE / BIG MAC','80',''],['LAST US FX INTERVENTION','1998',''],
+ ['30Y COST','HIGHEST SINCE 2001','up'],['10Y AUCTION','HIGHEST SINCE 2007','up'],['US ZERO-RATE EPISODES, ALL TIME','2','']];
+document.getElementById('tk').innerHTML =
+  TICK.map(t=>`<b>${t[0]}</b> <span class="${t[2]}">${t[1]}</span>`).join('<span class="sep">//</span>')+'<span class="sep">//</span>';
+
+/* ══ nodes ═══════════════════════════════════════════════════════ */
+const N=[
+/* ── UNITED STATES ── */
+ {id:'deficit',s:'us',ic:'stack',x:60,y:344,w:290,h:86,tag:'FISCAL BASE',lb:'Deficit + record debt',
+  sb:'Spends far more than it collects. Debt near record share of the economy.',ts:'19:58',
+  q:'The US government is carrying near-record debt relative to the size of its economy, and it is spending far more than it collects in taxes.'},
+ {id:'inflation',s:'us',ic:'heat',x:375,y:344,w:285,h:86,tag:'MACRO',lb:'Inflation above target',
+  sb:'Still running hot, with doubts about the Fed’s willingness to tackle it.',ts:'21:32',
+  q:'Doubts have crept in about the Federal Reserve’s willingness to tackle sticky inflation.'},
+ {id:'supply',s:'us',ic:'press',x:60,y:452,w:290,h:86,tag:'FISCAL BASE',lb:'It must keep issuing',
+  sb:'So much debt for so long that the bonds stopped being scarce.',ts:'29:40',
+  q:'The US government has issued so much debt for so long that its bonds just aren’t scarce or special anymore.'},
+
+ {id:'convyield',s:'us',ic:'gem',x:60,y:574,w:290,h:82,tag:'TRAP 01',lb:'Convenience yield gone',
+  sb:'The discount for being the safest asset has shrunk to zero, even negative.',ts:'29:09',
+  q:'That discount was the reward for being special. Du and her co-authors found it has vanished and even gone negative.'},
+ {id:'longyields',s:'us',ic:'up',x:60,y:694,w:290,h:90,tag:'TRAP 02',lb:'Long yields rise',
+  sb:'10Y 4.6% · 30Y past 5% · the 30Y auction cleared at 5.22%.',ts:'28:13',
+  q:'The Treasury auctioned $25bn of 30-year bonds and had to pay 5.22% to get them sold — the highest since August 2001.'},
+ {id:'choice',s:'us',ic:'fork',x:60,y:822,w:290,h:86,tag:'TRAP 03',lever:1,lb:'The funding choice',
+  sb:'Lock in 30 years at 5.22%, or fund short with bills and wait for cheaper.',ts:'17:06',
+  q:'It can sell Treasury bills, which come due in a matter of months, or it can sell 30-year bonds and lock in the rate for a generation.'},
+ {id:'bills',s:'us',ic:'bill',x:60,y:930,w:290,h:86,tag:'TRAP 04',lever:1,lb:'He picks bills',
+  sb:'“Regular and predictable” abandoned. The Treasury is now running a trade.',ts:'20:23',
+  q:'For decades the Treasury’s guiding doctrine has been regular and predictable — don’t try to guess where rates are going. Bessent is trading.'},
+ {id:'bet',s:'us',ic:'dice',x:375,y:930,w:285,h:86,tag:'THE WAGER',lb:'Bet: rates will fall',
+  sb:'Then term out the national debt cheaply. A directional bet on the long end.',ts:'18:07',
+  q:'He is in effect wagering that long-term interest rates will come down, at which point he can finally issue longer-dated bonds on the cheap.'},
+ {id:'rollover',s:'us',ic:'wall',x:60,y:1038,w:290,h:95,tag:'TRAP 05',lb:'The rollover wall',
+  sb:'Bills come due in months and must be reissued at whatever rate exists then.',ts:'20:49',
+  q:'He’s funding the long-term obligations of the United States with short-term bills, which works right up until you roll those bills at a higher rate than you paid last time.'},
+ {id:'crisis',s:'us',ic:'bolt',x:375,y:1038,w:285,h:86,tag:'CAVEAT',lb:'Zero rates: twice, ever',
+  sb:'2008 and COVID. Betting on zero is betting that something breaks.',ts:'19:25',
+  q:'Rates don’t go to zero because things are going well. They go to zero because something has broken horribly.'},
+
+/* ── TRANSMISSION ── */
+ {id:'gap',s:'mid',ic:'caliper',x:740,y:654,w:250,h:90,tag:'BELT 01',lb:'Rate gap: 4% vs 1%',
+  sb:'The Fed near 4%, the Bank of Japan at 1% after years at zero.',ts:'5:29',
+  q:'One country where borrowing money is nearly free and another where parking cash in government bonds pays you around 4%.'},
+ {id:'carry',s:'mid',ic:'cycle',x:740,y:814,w:250,h:80,tag:'BELT 02',lb:'$4trn carry trade',
+  sb:'Borrow yen near free, sell it, buy yield. Bigger than India’s economy.',ts:'7:37',
+  q:'By some estimates this global carry trade has grown to over $4 trillion, which is larger than the entire economy of India.'},
+ {id:'yen',s:'mid',ic:'coin',x:740,y:914,w:250,h:100,tag:'BELT 03',lb:'Yen at 164',
+  sb:'A 40-year low. The Katsu Curry Index says a dollar should buy 62 yen. It buys 159.',ts:'9:12',
+  q:'Priced in katsu curry, a dollar should get you about 62 yen. In the actual market it was getting you 159.'},
+
+/* ── JAPAN ── */
+ {id:'boj',s:'jp',ic:'flagpole',x:1100,y:574,w:300,h:100,tag:'THE CLEAN EXIT',lever:1,cls:'blocked',lb:'BoJ raises rates',
+  sb:'Fixes the yen at source. Not one Treasury need be sold. Blocked in Tokyo, not Washington.',ts:'30:10',
+  q:'The clean way out of the trap is for Japan to fix it at the source by raising its own interest rates, which would strengthen the yen without anyone having to touch a single Treasury.'},
+ {id:'painJP',s:'jp',ic:'drop',x:1100,y:914,w:300,h:100,tag:'JAPAN 01',lb:'Import costs bite',
+  sb:'Japan buys nearly all its oil, gas and raw materials in a falling currency. Households pay.',ts:'8:18',
+  q:'Japan imports almost all of its oil, its natural gas and its raw materials. When your currency falls, your energy bills just go up.'},
+ {id:'defend',s:'jp',ic:'shield',x:1100,y:1034,w:300,h:86,tag:'JAPAN 02',lever:1,lb:'Japan defends the yen',
+  sb:'Another $50–80bn of dollars has to come from somewhere.',ts:'16:51',
+  q:'If Japan had to spend another 50 or 80 billion dollars defending the yen, it would have to raise that cash somehow.'},
+ {id:'sellUST',s:'jp',ic:'dump',x:1100,y:1134,w:300,h:95,tag:'THE THREAT',lever:1,cls:'threat',lb:'Japan sells its $1trn of Treasuries',
+  sb:'The largest foreign holder liquidates. Prices fall, yields rise.',ts:'17:06',
+  q:'The obvious way is to sell US Treasuries. And when you dump Treasuries onto the market, bond prices fall and yields go up.'},
+
+/* ── US RESPONSE ── */
+ {id:'intervene',s:'us',ic:'hand',x:740,y:1329,w:310,h:110,tag:'RESPONSE 01',lever:1,lb:'31 July intervention',
+  sb:'$88bn. Euros sold, not dollars — the ECB was not told. Yen +5% to 155, then back past 159 in two weeks.',ts:'13:18',
+  q:'They didn’t sell American dollars to buy yen. They sold euros, which came as quite a surprise to the European Central Bank.'},
+ {id:'fima',s:'us',ic:'lock',x:1080,y:1329,w:310,h:110,tag:'RESPONSE 02',lever:1,lb:'FIMA repo facility',
+  sb:'Japan pledges its Treasuries to the Fed for dollars. Nobody has to sell on the open market.',ts:'22:51',
+  q:'Nobody has to sell a bond on the open market, because selling them might force everyone to admit what they’re actually worth.'},
+ {id:'sabotage',s:'us',ic:'hole',x:740,y:1469,w:650,h:110,tag:'OWN GOAL',lever:1,lb:'Washington’s own policy sinks the yen',
+  sb:'Tariffs make Japanese exports dearer, which weighs on the yen. The trade deal commits Japan to send hundreds of billions to America — and Japanese investors must sell yen to do it.',ts:'27:03',
+  q:'It’s a man bailing water out of a boat that he’s also enthusiastically drilling holes in.'}
+];
+const NX=Object.fromEntries(N.map(n=>[n.id,n]));
+NX.outcome={id:'outcome',x:20,y:36,w:1400,h:178};
+
+/* ══ edges ═══════════════════════════════════════════════════════ */
+const E=[
+ {id:'e1',a:['deficit','b',.5],b:['supply','t',.5]},
+ {id:'e2',a:['supply','b',.25],b:['convyield','t',.25],lab:'SUPPLY FLOOD',lx:130,ly:568},
+ {id:'e3',a:['inflation','b',.5],b:['longyields','t',.78],lab:'TERM PREMIUM',lx:300,ly:669,
+   p:(A,B)=>[A,{x:A.x,y:676},{x:B.x,y:676},B]},
+ {id:'e4',a:['convyield','b',.25],b:['longyields','t',.25],lab:'NO PREMIUM LEFT'},
+ {id:'e5',a:['longyields','b',.5],b:['choice','t',.5],lab:'PRICES THE CHOICE'},
+ {id:'e6',a:['choice','b',.5],b:['bills','t',.5]},
+ {id:'e7',a:['bills','b',.22],b:['rollover','t',.22],lab:'CREATES'},
+ {id:'e8',a:['bills','r',.5],b:['bet','l',.5]},
+ {id:'e8b',a:['bet','l',.85],b:['rollover','r',.3],
+   p:(A,B)=>[A,{x:362,y:A.y},{x:362,y:B.y},B]},
+ {id:'e9',a:['crisis','t',.5],b:['bet','b',.5],k:'note'},
+ {id:'e10',a:['rollover','l',.5],b:['outcome','b',.08],k:'resolve',lab:'SETTLES HERE',lx:16,ly:1205,
+   p:(A,B)=>[A,{x:9,y:A.y},{x:9,y:246},{x:B.x,y:246},B]},
+
+ {id:'e12',a:['longyields','r',.15],b:['gap','l',.5],k:'mid',lab:'US SIDE OF THE GAP',lx:400,ly:702,
+   p:(A,B)=>[A,{x:692,y:A.y},{x:692,y:B.y},B]},
+ {id:'e13',a:['gap','b',.5],b:['carry','t',.5],k:'mid',lab:'FUNDS IT',lx:872,ly:808},
+ {id:'e14',a:['carry','b',.5],b:['yen','t',.5],k:'mid',lab:'SELLS YEN'},
+ {id:'e15',a:['yen','r',.5],b:['painJP','l',.5],k:'jp',lab:'HITS HOUSEHOLDS',lx:998,ly:957},
+ {id:'e16',a:['painJP','b',.5],b:['defend','t',.5],k:'jp',lab:'POLITICAL PRESSURE'},
+ {id:'e17',a:['defend','b',.5],b:['sellUST','t',.5],k:'jp',lab:'NEEDS $50\u201380BN'},
+ {id:'e18',a:['sellUST','r',.5],b:['longyields','r',.94],k:'feedback',
+   lab:'\u25c0 FEEDBACK \u2014 THIS LOOP IS THE WHOLE REASON FOR THE INTERVENTION',lx:392,ly:771,
+   p:(A,B)=>[A,{x:1428,y:A.y},{x:1428,y:B.y},B]},
+
+ {id:'e19',a:['boj','l',.5],b:['gap','r',.5],k:'blocked',lab:'WOULD NARROW IT',lx:1000,ly:692,
+   p:(A,B)=>[A,{x:1060,y:A.y},{x:1060,y:B.y},B]},
+ {id:'e20',a:['boj','l',.85],b:['yen','r',.2],k:'blocked',lab:'WOULD LIFT IT',lx:996,ly:927,
+   p:(A,B)=>[A,{x:1070,y:A.y},{x:1070,y:B.y},B]},
+
+ {id:'e21',a:['sellUST','b',.5],b:['intervene','t',.5],lab:'MUST BE PREVENTED',lx:930,ly:1268,
+   p:(A,B)=>[A,{x:A.x,y:1274},{x:B.x,y:1274},B]},
+ {id:'e22',a:['fima','t',.5],b:['sellUST','b',.8],k:'blocked',lab:'PLEDGE, DON\u2019T SELL',lx:1245,ly:1280,
+   p:(A,B)=>[A,{x:A.x,y:1286},{x:B.x,y:1286},B]},
+ {id:'e23',a:['intervene','l',.5],b:['yen','l',.3],lab:'PROPS IT UP',lx:696,ly:1160,
+   p:(A,B)=>[A,{x:686,y:A.y},{x:686,y:B.y},B]},
+ {id:'e24',a:['sabotage','l',.5],b:['yen','l',.85],k:'sabotage',lab:'PUSHES IT DOWN',lx:718,ly:1245,
+   p:(A,B)=>[A,{x:712,y:A.y},{x:712,y:B.y},B]}
+];
+
+/* ══ what each arrow means inside each scenario ══════════════════
+   The live map shows the loop as it runs now. Under a scenario the
+   same arrow can carry the opposite trade, so the labels change. */
+const LABS={
+ boj:{e19:'NARROWS THE GAP AT SOURCE',e20:'LIFTS THE YEN',e13:'FUNDING LEG STOPS BEING FREE',
+      e14:'UNWINDS — BUYS YEN BACK',e15:'COSTS EASE',e16:'PRESSURE COMES OFF',
+      e17:'NO DOLLARS NEEDED',e18:'◀ THE LOOP NEVER CLOSES — NOTHING IS SOLD',
+      e5:'THE LONG END CAN FALL',e7:'ROLLS AT LOWER RATES',e10:'SETTLES IN HIS FAVOUR'},
+ disinf:{e3:'PREMIUM COMPRESSES',e5:'THE LONG END COMES DOWN',e7:'EACH ROLL IS CHEAPER',
+      e10:'SETTLES IN HIS FAVOUR'},
+ sticky:{e2:'SUPPLY KEEPS COMING',e3:'PREMIUM STAYS WIDE',e4:'STILL NO PREMIUM',
+      e5:'THE LONG END STAYS HIGH',e7:'EACH ROLL COSTS MORE',e10:'SETTLES AGAINST HIM'},
+ grenade:{e13:'FUNDING VANISHES OVERNIGHT',e14:'EVERYONE BUYS YEN AT ONCE',e15:'YEN ROCKETS',
+      e16:'DELEVERAGING, NOT POLICY',e17:'SELLS INTO NO BID',
+      e18:'◀ YIELDS GAP HIGHER — NO BUYER OF LAST RESORT',
+      e21:'IT FIRES AND IT FAILS',e23:'$88BN AGAINST $4TRN',
+      e5:'THE LONG END GAPS',e7:'ROLLS INTO THE SPIKE',e10:'SETTLES AGAINST HIM'}
+};
+
+/* ══ scenarios ═══════════════════════════════════════════════════ */
+const S={
+ live:{key:'F1',nm:'Live map',tone:'',vd:'',flag:'mid',who:'Nobody yet — the loop is still running',
+  badge:'UNRESOLVED',cond:'the bond market has not decided',
+  txt:'Two possibilities, and the source declines to choose. Either Bessent sees something the bond market cannot — or he is a day trader who has taken an enormous directional bet with the balance sheet of the United States. Long rates answer to inflation and to investor trust. They answer to neither the Treasury Secretary nor the Federal Reserve, which only sets the short end.',
+  verdict:'Three columns: what the United States controls, what Japan controls, and the transmission belt in the middle that neither owns. Nodes with a solid left bar are <b>decisions</b> — a lever somebody can actually pull. Everything else is a condition nobody chooses. Pick a scenario to trace one chain and see whose decision drives it.'},
+
+ boj:{key:'F2',nm:'BoJ hikes',tone:'g',vd:'WORKS',flag:'jp',who:'Tokyo, alone',
+  nodes:['boj','gap','carry','yen','painJP','defend','sellUST','longyields','choice','bills','rollover','outcome'],
+  chain:['boj','gap','carry','yen','painJP','defend','sellUST','longyields','choice','bills','rollover'],
+  edges:['e19','e20','e13','e14','e15','e16','e17','e18','e5','e6','e7','e10'],
+  badge:'SURVIVES',cond:'if Tokyo raises rates',
+  txt:'The rate gap narrows at source. The carry trade unwinds because its funding leg stops being free, not because anyone intervened. The yen strengthens on its own, Japan never needs the dollars, and the $1trn of Treasuries never comes to market. The feedback loop into US long yields is cut before it starts.',
+  verdict:'The only chain that treats the cause instead of the symptom — and every lever in it sits in the Japanese column. Ueda has signalled hikes. The Prime Minister wants fiscal stimulus instead, on debt already past 200% of the economy, with a quarter of government spending already going on interest. Washington cannot make this decision, which is exactly why it is spending reserves on the symptom.'},
+
+ disinf:{key:'F3',nm:'Disinflation',tone:'g',vd:'WORKS',flag:'none',who:'Neither — the bond market',
+  nodes:['inflation','longyields','choice','bills','bet','rollover','outcome'],
+  chain:['inflation','longyields','choice','bills','bet','rollover'],
+  edges:['e3','e5','e6','e7','e8','e8b','e10'],
+  badge:'PAYS OFF',cond:'if inflation returns to target',
+  txt:'Inflation falls, confidence in American debt returns, the term premium compresses and the long end comes down properly and durably. He rolls the last of the bills cheaply and finally terms out the national debt at bargain rates. In hindsight the whole nervous period looks like brilliantly timed patience.',
+  verdict:'The visionary case. Note that it lights up only the American column — Japan is irrelevant to it. But no lever in the chain belongs to Washington either. It needs the bond market to change its mind about two things at once: US inflation, and the sheer volume of US debt being issued into it.'},
+
+ sticky:{key:'F4',nm:'Sticky inflation',tone:'r',vd:'FAILS',flag:'us',who:'Washington’s own funding choice',
+  nodes:['deficit','supply','inflation','convyield','longyields','choice','bills','bet','crisis','rollover','outcome'],
+  chain:['deficit','supply','convyield','longyields','choice','bills','bet','rollover'],aside:['inflation','crisis'],
+  edges:['e1','e2','e3','e4','e5','e6','e7','e8','e8b','e9','e10'],
+  badge:'UNDERWATER',cond:'if rates simply do not fall',
+  txt:'Inflation stays above target. Deficits keep the supply coming, so the convenience yield stays gone and the long end stays high. Every batch of bills matures and is reissued at a rate no lower than the last, on a debt stock that keeps growing. The saving from not terming out becomes a compounding cost, and there is no cheap window to escape into.',
+  verdict:'The entire chain sits in the American column and Japan greys out completely — this failure needs Tokyo to do nothing at all. The one lever in it is Washington’s own: choosing bills over bonds. That choice is what converts a high-rate environment into a compounding problem. And note the caveat node: US rates have gone near zero exactly twice, after 2008 and after COVID. Betting on rates collapsing is betting that something breaks horribly.'},
+
+ grenade:{key:'F5',nm:'Carry unwind',tone:'r',vd:'FAILS',flag:'none',who:'Neither — the trade unwinds itself',
+  nodes:['gap','carry','yen','painJP','defend','sellUST','longyields','intervene','rollover','outcome'],
+  chain:['gap','carry','yen','painJP','defend','sellUST','longyields','choice','bills','rollover'],aside:['intervene'],
+  edges:['e13','e14','e15','e16','e17','e18','e21','e23','e5','e6','e7','e10'],
+  badge:'OVERRUN',cond:'if the $4trn trade unwinds at once',
+  txt:'The carry trade stops working for everyone on the same afternoon. Everyone rushes to unwind, the yen rockets, and leverage everywhere is called in at the same time. Japan sells Treasuries into a market that has no bid, and US long yields gap higher exactly when the Treasury has the most short-dated paper to roll.',
+  verdict:'It starts in the middle column, where neither government has a lever. The extra yield on the carry trade was always the fee for volunteering to hold the grenade. Intervention does not defuse it: $88bn is a rounding error in a market where trillions change hands daily, and half the 5% move it bought was given back within two weeks. The intervention node lights up here because it fires and fails.'}
+};
+
+/* ══ render ══════════════════════════════════════════════════════ */
+const cv=document.getElementById('canvas'), sv=document.getElementById('wires'), SVGNS='http://www.w3.org/2000/svg';
+
+/* column headers + zones */
+[['us','UNITED STATES',20,660,'FISCAL · FUNDING · RESPONSE'],
+ ['mid','TRANSMISSION',720,290,'NEITHER SIDE OWNS THIS'],
+ ['jp','JAPAN',1080,340,'HOUSEHOLDS · CENTRAL BANK · RESERVES']].forEach(c=>{
+  const h=document.createElement('div');h.className='chead '+c[0];
+  h.style.cssText=`left:${c[2]}px;top:260px;width:${c[3]}px;height:44px`;
+  h.innerHTML=`<span class="fl">${FLAG[c[0]]}</span>${c[1]}<span class="rr">${c[4]}</span>`;
+  cv.appendChild(h);
+  const z=document.createElement('div');z.className='zone '+c[0];
+  z.style.cssText=`left:${c[2]}px;top:314px;width:${c[3]}px;height:920px`;
+  cv.appendChild(z);
+});
+/* response strip */
+const rz=document.createElement('div');rz.className='zone us';
+rz.style.cssText='left:720px;top:1294px;width:700px;height:300px';
+rz.innerHTML='<span class="zn">SYMPTOM MANAGEMENT</span>';
+cv.appendChild(rz);
+
+/* band dividers inside the US column */
+[[548,'02 · THE FUNDING TRAP']].forEach(b=>{
+  const d=document.createElement('div');d.className='band';
+  d.style.cssText=`left:24px;top:${b[0]}px;width:652px`;
+  d.innerHTML=`<span>${b[1]}</span>`;cv.appendChild(d);
+});
+const rb=document.createElement('div');rb.className='band';
+rb.style.cssText='left:724px;top:1320px;width:692px';
+rb.innerHTML='<span style="left:12px">03 · THE US RESPONSE — WHAT WASHINGTON ACTUALLY DID</span>';
+cv.appendChild(rb);
+
+/* nodes */
+N.forEach(n=>{
+  const a=document.createElement('a');
+  a.className='node'+(n.cls?' '+n.cls:'');a.id='n_'+n.id;
+  a.dataset.side=n.s; if(n.lever)a.dataset.lever='1';
+  a.href=`${VIDEO}?t=${secs(n.ts)}`;a.target='_blank';a.rel='noopener';
+  a.style.cssText=`left:${n.x}px;top:${n.y}px;width:${n.w}px;height:${n.h}px`;
+  a.innerHTML=`<div class="hd">${gl(n.ic)}<span class="tag">${n.tag}</span>`
+    +(n.lever?'<span class="lever">Lever</span>':'')
+    +`<span class="fl">${FLAG[n.s]}</span></div>`
+    +`<div class="lb">${n.lb}</div><div class="sb">${n.sb}</div>`
+    +`<span class="go">${n.ts} ↗</span>`;
+  a.addEventListener('mousemove',e=>showTip(e,n));
+  a.addEventListener('mouseleave',hideTip);
+  cv.appendChild(a);
+});
+
+/* outcome */
+const o=NX.outcome, oc=document.createElement('div');
+oc.className='outcome';oc.id='n_outcome';
+oc.style.cssText=`left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px`;
+oc.innerHTML=`<div class="oh">Bessent's bet &middot; the outcome this whole map resolves to <span class="r" id="ostate"></span></div>
+ <div class="ob"><div><div class="badge" id="obadge"></div><div class="cond" id="ocond"></div></div><div class="txt" id="otxt"></div></div>`;
+cv.appendChild(oc);
+
+/* wires */
+function anchor(id,side,t){const n=NX[id];
+  if(side==='t')return{x:n.x+t*n.w,y:n.y};
+  if(side==='b')return{x:n.x+t*n.w,y:n.y+n.h};
+  if(side==='l')return{x:n.x,y:n.y+t*n.h};
+  return{x:n.x+n.w,y:n.y+t*n.h};}
+function defPath(A,B,side){
+  if(A.x===B.x||A.y===B.y)return[A,B];
+  if(side==='t'||side==='b'){const m=(A.y+B.y)/2;return[A,{x:A.x,y:m},{x:B.x,y:m},B];}
+  const m=(A.x+B.x)/2;return[A,{x:m,y:A.y},{x:m,y:B.y},B];}
+
+E.forEach(e=>{
+  const A=anchor(...e.a), B=anchor(...e.b);
+  const pts=e.p?e.p(A,B):defPath(A,B,e.a[1]);
+  const g=document.createElementNS(SVGNS,'g');
+  g.setAttribute('class','edge'+(e.k?' '+e.k:''));g.id='w_'+e.id;
+
+  const pl=document.createElementNS(SVGNS,'polyline');
+  pl.setAttribute('class','wire'+(e.k?' '+e.k:''));
+  pl.setAttribute('points',pts.map(p=>p.x+','+p.y).join(' '));
+  g.appendChild(pl);
+
+  const p1=pts[pts.length-2], p2=pts[pts.length-1], s=6.5;
+  let tri;
+  if(Math.abs(p2.x-p1.x)>Math.abs(p2.y-p1.y)){
+    const d=p2.x>p1.x?1:-1;
+    tri=`${p2.x},${p2.y} ${p2.x-d*s*1.5},${p2.y-s} ${p2.x-d*s*1.5},${p2.y+s}`;
+  }else{
+    const d=p2.y>p1.y?1:-1;
+    tri=`${p2.x},${p2.y} ${p2.x-s},${p2.y-d*s*1.5} ${p2.x+s},${p2.y-d*s*1.5}`;
+  }
+  const hd=document.createElementNS(SVGNS,'polygon');
+  hd.setAttribute('class','head'+(e.k?' '+e.k:''));hd.setAttribute('points',tri);
+  g.appendChild(hd);
+
+  if(e.lab){
+    let lx=e.lx, ly=e.ly;
+    if(lx===undefined){
+      let best=0,bi=0;
+      for(let i=0;i<pts.length-1;i++){
+        const d=Math.abs(pts[i+1].x-pts[i].x)+Math.abs(pts[i+1].y-pts[i].y);
+        if(d>best){best=d;bi=i;}
+      }
+      lx=(pts[bi].x+pts[bi+1].x)/2+7; ly=(pts[bi].y+pts[bi+1].y)/2+3;
+    }
+    const fs=e.k==='feedback'?10.5:9.5, wpx=e.lab.length*fs*.66+10;
+    const bg=document.createElementNS(SVGNS,'rect');
+    bg.setAttribute('class','elabbg');
+    bg.setAttribute('x',lx-5);bg.setAttribute('y',ly-fs+1);
+    bg.setAttribute('width',wpx);bg.setAttribute('height',fs+5);
+    g.appendChild(bg);
+    const tx=document.createElementNS(SVGNS,'text');
+    tx.setAttribute('class','elab'+(e.k?' '+e.k:''));
+    tx.setAttribute('x',lx);tx.setAttribute('y',ly);tx.textContent=e.lab;
+    g.appendChild(tx);
+    e._tx=tx; e._bg=bg; e._lx=lx; e._fs=fs;
+  }
+  sv.appendChild(g);
+});
+
+/* ══ legend ══════════════════════════════════════════════════════ */
+document.getElementById('legend').innerHTML=[
+ [`<span class="fl">${FLAG.us}</span>`,'<b>United States</b> — amber'],
+ [`<span class="fl">${FLAG.jp}</span>`,'<b>Japan</b> — cyan'],
+ [`<span class="fl">${FLAG.mid}</span>`,'<b>Transmission</b> — violet, owned by neither'],
+ ['<span class="sw"><svg width="26" height="12"><rect x="0" y="1" width="4" height="10" fill="#ff9d21"/><rect x="5.5" y="1" width="20" height="10" fill="none" stroke="#38301f"/></svg></span>','<b>Lever</b> — a decision someone can take'],
+ ['<span class="sw"><svg width="26" height="12"><rect x="0.5" y="1" width="25" height="10" fill="none" stroke="#38301f"/></svg></span>','<b>Condition</b> — nobody chooses it'],
+ ['<span class="sw"><svg width="26" height="12"><path d="M0 6h26" stroke="#d07d18" stroke-width="2.8"/></svg></span>','<b>Feedback</b> — Japan selling raises US yields'],
+ ['<span class="sw"><svg width="26" height="12"><path d="M0 6h26" stroke="#2b6b7a" stroke-width="1.6" stroke-dasharray="5 4"/></svg></span>','<b>Blocked</b> — available but not taken'],
+ ['<span class="sw"><svg width="26" height="12"><path d="M0 6h26" stroke="#8c2d4d" stroke-width="1.6" stroke-dasharray="7 4"/></svg></span>','<b>Own goal</b> — works against the intervention']
+].map(l=>`<div class="lg">${l[0]}<span>${l[1]}</span></div>`).join('')
++'<div class="lg" style="margin-top:6px;border-top:1px solid #16130e;padding-top:8px">Every node links to the video at that timestamp.</div>';
+
+/* ══ tooltip ═════════════════════════════════════════════════════ */
+const tip=document.getElementById('tip');
+function showTip(ev,n){
+  tip.innerHTML=`<span class="t">SOURCE · ${n.ts}</span>“${n.q}”<span class="go">CLICK → OPEN VIDEO AT ${n.ts}</span>`;
+  tip.style.opacity=1;
+  tip.style.left=Math.min(ev.clientX+16, innerWidth-310)+'px';
+  tip.style.top=Math.min(ev.clientY+16, innerHeight-170)+'px';
+}
+function hideTip(){tip.style.opacity=0}
+
+/* ══ narrow-screen chain view ════════════════════════════════════
+   The map is a fixed coordinate space and its wire routing cannot
+   reflow, so below 760px the same scenario is rendered as an
+   ordered list of steps instead. */
+const chainBox=document.getElementById('chain');
+const edgeBetween=(a,b)=>E.find(e=>e.a[0]===a&&e.b[0]===b);
+function connLabel(a,b,k){
+  const e=edgeBetween(a,b); if(!e)return '';
+  return (((LABS[k]&&LABS[k][e.id])||e.lab)||'').replace(/^[◀▶]\s*/,'');
+}
+const stepCard=(n,tone,i)=>`<a class="step ${tone}" data-side="${n.s}" href="${VIDEO}?t=${secs(n.ts)}" target="_blank" rel="noopener">`
+  +(i?`<span class="num">${String(i).padStart(2,'0')}</span>`:'')
+  +`<div class="hd">${gl(n.ic)}<span class="tag">${n.tag}</span>`
+  +(n.lever?'<span class="lever">Lever</span>':'')
+  +`<span class="fl">${FLAG[n.s]}</span></div>`
+  +`<div class="lb">${n.lb}</div><div class="sb">${n.sb}</div>`
+  +`<div class="ts">Watch at ${n.ts} ↗</div></a>`;
+
+function renderChain(k){
+  const s=S[k], tone=s.tone||'', live=k==='live';
+  let h=`<div class="ocard ${tone}"><div class="oh">Bessent's bet<span class="r">${live?'Status · open':s.vd}</span></div>`
+   +`<div class="ob"><div class="badge">${s.badge}</div><div class="cond">${s.cond}</div><div class="txt">${s.txt}</div></div></div>`
+   +`<div class="chd"><span class="fl">${FLAG[s.flag]}</span><span><b>Decided by</b><i>${s.who}</i></span></div>`;
+
+  if(live){
+    h+='<p class="cnote">The live map has no single path — it is a loop. These are its pieces, grouped by who owns them. Pick a scenario above to see one chain in causal order.</p>';
+    [['us','United States'],['mid','Transmission'],['jp','Japan']].forEach(([side,name])=>{
+      h+=`<div class="ghd ${side}"><span class="fl">${FLAG[side]}</span>${name}</div>`;
+      h+=N.filter(n=>n.s===side&&!['intervene','fima','sabotage'].includes(n.id)).map(n=>stepCard(n,'',0)).join('');
+    });
+    h+=`<div class="ghd rsp">The US response</div>`
+      +N.filter(n=>['intervene','fima','sabotage'].includes(n.id)).map(n=>stepCard(n,'',0)).join('');
+  }else{
+    s.chain.forEach((id,i)=>{
+      h+=stepCard(NX[id],tone,i+1);
+      const nx=s.chain[i+1];
+      if(nx){
+        const l=connLabel(id,nx,k);
+        h+=`<div class="conn ${tone}${l?'':' bare'}"><span class="ln"></span>${l?`<span class="cl">${l}</span>`:''}</div>`;
+      }
+    });
+    const last=s.chain[s.chain.length-1];
+    h+=`<div class="conn ${tone}"><span class="ln"></span><span class="cl">${connLabel(last,'outcome',k)||'resolves the bet'} — see the verdict at the top</span></div>`;
+    if(s.aside&&s.aside.length){
+      h+=`<div class="ghd rsp">Also in play</div>`+s.aside.map(id=>stepCard(NX[id],'',0)).join('');
+    }
+  }
+  chainBox.innerHTML=h;
+}
+
+/* ══ scenario control ════════════════════════════════════════════ */
+const order=['live','boj','disinf','sticky','grenade'];
+const fnbar=document.getElementById('fnbar'), scen=document.getElementById('scen');
+order.forEach(k=>{
+  const s=S[k];
+  const b=document.createElement('button');
+  b.innerHTML=`<span class="k">${s.key}</span>${s.nm}`;b.className=s.tone;b.dataset.k=k;
+  b.onclick=()=>apply(k);fnbar.appendChild(b);
+  const r=document.createElement('button');
+  r.className=s.tone;r.dataset.k=k;
+  r.innerHTML=`<span class="dot"></span><span class="fl">${FLAG[s.flag]}</span><span class="nm">${s.nm}</span><span class="vd">${s.vd||'—'}</span>`;
+  r.onclick=()=>apply(k);scen.appendChild(r);
+});
+
+const TONE={g:'var(--green)',r:'var(--red)'};
+function apply(k){
+  const s=S[k], live=k==='live';
+  document.querySelectorAll('#fnbar button,#scen button').forEach(b=>{
+    b.classList.toggle('on', b.parentElement.id==='fnbar' && b.dataset.k===k);
+    b.classList.toggle('act', b.parentElement.id==='scen' && b.dataset.k===k);
+  });
+  N.forEach(n=>{
+    const el=document.getElementById('n_'+n.id);
+    el.classList.remove('dim','hot','g','r');
+    if(live)return;
+    if(s.nodes.includes(n.id)){el.classList.add('hot');if(s.tone)el.classList.add(s.tone);}
+    else el.classList.add('dim');
+  });
+  E.forEach(e=>{
+    const g=document.getElementById('w_'+e.id);
+    g.classList.remove('dim','hot');g.style.removeProperty('--hotc');
+    if(e._tx){
+      const t=(LABS[k]&&LABS[k][e.id])||e.lab;
+      e._tx.textContent=t;
+      e._bg.setAttribute('width',t.length*e._fs*.66+10);
+    }
+    if(live)return;
+    if(s.edges.includes(e.id)){g.classList.add('hot');g.style.setProperty('--hotc',TONE[s.tone]);}
+    else g.classList.add('dim');
+  });
+  const ocEl=document.getElementById('n_outcome');
+  ocEl.className='outcome'+(live?'':' '+s.tone);
+  document.getElementById('obadge').textContent=s.badge;
+  document.getElementById('ocond').textContent=s.cond;
+  document.getElementById('otxt').textContent=s.txt;
+  document.getElementById('ostate').textContent=live?'STATUS · OPEN':s.vd;
+  document.getElementById('dflag').innerHTML=FLAG[s.flag];
+  document.getElementById('dwho').textContent=s.who;
+  const v=document.getElementById('verdict');
+  v.className=live?'':s.tone;
+  v.innerHTML=`<span class="h">${live?'Read me first':s.nm+' — '+s.vd}</span>${s.verdict}<span class="cursor"></span>`;
+  if(!live)v.querySelector('.cursor').style.background=TONE[s.tone];
+  renderChain(k);
+  history.replaceState(null,'',live?location.pathname:'#'+k);
+}
+addEventListener('keydown',e=>{
+  const i=['F1','F2','F3','F4','F5'].indexOf(e.key);
+  if(i>-1){e.preventDefault();apply(order[i]);}
+});
+apply(order.includes(location.hash.slice(1))?location.hash.slice(1):'live');
+
+</script>
+
+</body>
+</html>
