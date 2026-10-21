@@ -1,0 +1,395 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>memeng Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one wide service diagram (scrolls sideways on phones), legend above, two numbered step lists below. */
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --fg: #18202d; --muted: #586274; --line: #c3cad5;
+  --rem: #b05c0a; --rec: #0b767c; --db: #3450c4; --svc: #ad2b58; --hook: #6844bd; --cc: #394354;
+  --glyph: #ffffff;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10141b; --surface: #171d26; --fg: #e3e7ed; --muted: #97a1b2; --line: #333c4a;
+    --rem: #ec9b46; --rec: #3dc1c8; --db: #8399ff; --svc: #ef739b; --hook: #a98cf3; --cc: #8c97aa;
+    --glyph: #10141b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10141b; --surface: #171d26; --fg: #e3e7ed; --muted: #97a1b2; --line: #333c4a;
+  --rem: #ec9b46; --rec: #3dc1c8; --db: #8399ff; --svc: #ef739b; --hook: #a98cf3; --cc: #8c97aa;
+  --glyph: #10141b; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1260px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 48px; display: grid; gap: 24px; }
+header { display: grid; gap: 6px; }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+#theme { font: 500 13px var(--sans); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+#theme:hover { border-color: var(--muted); }
+#theme:focus-visible { outline: 2px solid var(--db); outline-offset: 2px; }
+#theme svg { width: 16px; height: 16px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 70ch; }
+code { font-family: var(--mono); font-size: 0.88em; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend svg { width: 36px; height: 10px; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; display: grid; gap: 10px; }
+.scroll { overflow-x: auto; }
+.scroll svg { display: block; width: 100%; min-width: 980px; height: auto; }
+figcaption { font-size: 13px; color: var(--muted); padding-inline: 4px; }
+
+svg text { font-family: var(--sans); }
+.outer { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+.grp { fill: none; stroke-width: 1.2; stroke-dasharray: 5 4; }
+.gl { font-size: 12.5px; font-weight: 600; }
+.nl { font-size: 12.5px; font-weight: 600; fill: var(--fg); }
+.ns { font-family: var(--mono) !important; font-size: 10.5px; fill: var(--muted); }
+.al { font-size: 11px; fill: var(--muted); stroke: var(--surface); stroke-width: 5px; paint-order: stroke; stroke-linejoin: round; }
+.glyph { color: var(--glyph); }
+.f-rem { stroke: var(--rem); } .f-rec { stroke: var(--rec); }
+.flow { fill: none; stroke-width: 1.6; }
+.call { stroke-dasharray: 5 4; }
+.mk-rem { fill: var(--rem); } .mk-rec { fill: var(--rec); }
+.b-rem { fill: var(--rem); } .b-rec { fill: var(--rec); }
+.bn { font-size: 10.5px; font-weight: 600; fill: var(--glyph); }
+.c-cc { fill: var(--cc); } .s-cc { stroke: var(--cc); } .t-cc { fill: var(--cc); }
+.c-hook { fill: var(--hook); } .s-hook { stroke: var(--hook); } .t-hook { fill: var(--hook); }
+.c-rem { fill: var(--rem); } .s-rem { stroke: var(--rem); } .t-rem { fill: var(--rem); }
+.c-rec { fill: var(--rec); } .s-rec { stroke: var(--rec); } .t-rec { fill: var(--rec); }
+.c-svc { fill: var(--svc); } .s-svc { stroke: var(--svc); } .t-svc { fill: var(--svc); }
+.c-db { fill: var(--db); } .s-db { stroke: var(--db); } .t-db { fill: var(--db); }
+.row { fill: var(--bg); stroke: var(--line); }
+.rn { font-family: var(--mono) !important; font-size: 12px; font-weight: 500; fill: var(--fg); }
+.rd { font-size: 11px; fill: var(--muted); }
+
+.node { cursor: help; outline: none; transition: opacity .15s; }
+.node > rect:first-child { transition: stroke .15s; }
+.node:hover > rect:first-child, .node:focus-visible > rect:first-child, .node.on > rect:first-child { stroke: var(--fg); stroke-width: 2.5; }
+svg.has-on .node:not(.on) { opacity: .4; }
+.badges { pointer-events: none; }
+.hint { color: var(--fg); font-weight: 500; }
+.tip { position: fixed; z-index: 10; max-width: min(320px, calc(100vw - 32px)); background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.18); font-size: 13px; line-height: 1.5; pointer-events: none; display: grid; gap: 4px; }
+.tip b { font-size: 14px; font-weight: 600; }
+.tip code { color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .node, .node > rect:first-child { transition: none; } }
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.steps section { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; min-width: 0; }
+.steps h2 { font-size: 15px; font-weight: 600; margin: 0 0 2px; display: flex; gap: 8px; align-items: baseline; }
+.steps h2 small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.steps ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 22px 1fr; gap: 10px; font-size: 14px; }
+.steps li::before { content: counter(s); width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--glyph); margin-top: 1px; }
+.rem li::before { background: var(--rem); } .rec li::before { background: var(--rec); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="top">
+      <h1>memeng Architecture</h1>
+      <button id="theme" type="button" aria-label="Switch colour theme">
+        <svg viewBox="-12 -12 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="0" cy="0" r="5"/><path d="M0 -11 V-8 M0 8 V11 M-11 0 H-8 M8 0 H11 M-7.8 -7.8 L-5.7 -5.7 M5.7 5.7 L7.8 7.8 M-7.8 7.8 L-5.7 5.7 M5.7 -5.7 L7.8 -7.8"/></g></svg>
+        <span>Light mode</span>
+      </button>
+    </div>
+    <p class="lede">Two Claude Code hooks drive the memory system. The UserPromptSubmit hook recalls facts before Claude reads your message. The Stop hook remembers new facts after each reply. Both share one SQLite file.</p>
+  </header>
+
+  <div class="legend" aria-label="Legend">
+    <span><svg viewBox="0 0 36 10" aria-hidden="true"><line x1="0" y1="5" x2="36" y2="5" stroke="var(--rec)" stroke-width="2"/></svg>Recall flow</span>
+    <span><svg viewBox="0 0 36 10" aria-hidden="true"><line x1="0" y1="5" x2="36" y2="5" stroke="var(--rem)" stroke-width="2"/></svg>Remember flow</span>
+    <span><svg viewBox="0 0 36 10" aria-hidden="true"><line x1="0" y1="5" x2="36" y2="5" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 4"/></svg>Call to a local model</span>
+    <span class="hint">Hover over or tap a component to see what it does.</span>
+  </div>
+
+  <figure>
+    <div class="scroll">
+<svg viewBox="0 0 1240 800" role="img" aria-label="memeng architecture. The UserPromptSubmit hook embeds the message with Ollama, reads candidates from the vector, full-text and entity tables, ranks them, and returns memories to Claude Code. The Stop hook spawns a capture process that gates, extracts, deduplicates and stores facts in SQLite, calling the Claude CLI and Ollama.">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-rem" d="M0 0 L10 5 L0 10 Z"/></marker>
+    <marker id="aq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk-rec" d="M0 0 L10 5 L0 10 Z"/></marker>
+
+    <symbol id="g-term" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="-9" y="-7" width="18" height="14" rx="2"/><polyline points="-5,-2 -2,1 -5,4"/><line x1="0" y1="4" x2="5" y2="4"/></g></symbol>
+    <symbol id="g-hook" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 -9 V3 A5 5 0 0 1 -6 3 V-1"/><polyline points="-9,2 -6,-1 -3,2"/></g></symbol>
+    <symbol id="g-window" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="-8" y="-9" width="16" height="18" rx="2"/><line x1="-4" y1="-4" x2="4" y2="-4"/><line x1="-4" y1="0" x2="4" y2="0"/><line x1="-4" y1="4" x2="1" y2="4"/></g></symbol>
+    <symbol id="g-gate" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M0 -9 L9 0 L0 9 L-9 0 Z"/><circle cx="0" cy="0" r="1.6" fill="currentColor" stroke="none"/></g></symbol>
+    <symbol id="g-funnel" viewBox="-12 -12 24 24"><path d="M-9 -7 H9 L2 1 V8 L-2 6 V1 Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="g-store" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M-8 2 V7 H8 V2"/><line x1="0" y1="-9" x2="0" y2="3"/><polyline points="-4,-1 0,3 4,-1"/></g></symbol>
+    <symbol id="g-dots" viewBox="-12 -12 24 24"><g fill="currentColor"><circle cx="-6" cy="-6" r="2"/><circle cx="0" cy="-6" r="2"/><circle cx="6" cy="-6" r="2"/><circle cx="-6" cy="0" r="2"/><circle cx="0" cy="0" r="2"/><circle cx="6" cy="0" r="2"/><circle cx="-6" cy="6" r="2"/><circle cx="0" cy="6" r="2"/><circle cx="6" cy="6" r="2"/></g></symbol>
+    <symbol id="g-search" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="-2" cy="-2" r="6"/><line x1="2.5" y1="2.5" x2="8" y2="8"/></g></symbol>
+    <symbol id="g-merge" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M-8 -7 L-1 0 L-8 7"/><line x1="-8" y1="0" x2="8" y2="0"/><polyline points="4,-4 8,0 4,4"/></g></symbol>
+    <symbol id="g-filter" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="-8" y1="-6" x2="8" y2="-6"/><line x1="-5" y1="0" x2="5" y2="0"/><line x1="-2" y1="6" x2="2" y2="6"/></g></symbol>
+    <symbol id="g-chat" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M-9 -8 H9 V4 H-1 L-6 8 V4 H-9 Z"/><line x1="-5" y1="-3" x2="5" y2="-3"/><line x1="-5" y1="0" x2="2" y2="0"/></g></symbol>
+    <symbol id="g-net" viewBox="-12 -12 24 24"><g stroke="currentColor" stroke-width="1.5"><line x1="-6" y1="-6" x2="6" y2="0"/><line x1="-6" y1="6" x2="6" y2="0"/><line x1="-6" y1="-6" x2="-6" y2="6"/></g><g fill="currentColor"><circle cx="-6" cy="-6" r="2.8"/><circle cx="-6" cy="6" r="2.8"/><circle cx="6" cy="0" r="2.8"/></g></symbol>
+    <symbol id="g-db" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="0" cy="-6" rx="8" ry="3"/><path d="M-8 -6 V6 A8 3 0 0 0 8 6 V-6"/><path d="M-8 0 A8 3 0 0 0 8 0"/></g></symbol>
+    <symbol id="g-pc" viewBox="-12 -12 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="-9" y="-8" width="18" height="12" rx="1.5"/><line x1="-4" y1="8" x2="4" y2="8"/></g></symbol>
+  </defs>
+
+  <!-- Outer boundary -->
+  <rect class="outer" x="16" y="16" width="1208" height="772" rx="3"/>
+  <rect class="c-cc" x="16" y="16" width="24" height="24"/><use class="glyph" href="#g-pc" x="18" y="18" width="20" height="20"/>
+  <text class="gl" x="48" y="33" fill="var(--fg)">localhost</text>
+
+  <!-- Groups -->
+  <rect class="grp s-cc" x="32" y="56" width="168" height="684"/>
+  <rect class="c-cc" x="32" y="56" width="22" height="22"/><use class="glyph" href="#g-term" x="34" y="58" width="18" height="18"/>
+  <text class="gl t-cc" x="62" y="72">Claude Code</text>
+
+  <rect class="grp s-hook" x="216" y="56" width="184" height="684"/>
+  <rect class="c-hook" x="216" y="56" width="22" height="22"/><use class="glyph" href="#g-hook" x="218" y="58" width="18" height="18"/>
+  <text class="gl t-hook" x="246" y="72">Hooks</text>
+
+  <rect class="grp s-rec" x="416" y="56" width="504" height="260"/>
+  <rect class="c-rec" x="416" y="56" width="22" height="22"/><use class="glyph" href="#g-search" x="418" y="58" width="18" height="18"/>
+  <text class="gl t-rec" x="446" y="72">Recall · retrieve.py · runs inside the hook</text>
+
+  <rect class="grp s-svc" x="416" y="336" width="504" height="144"/>
+  <rect class="c-svc" x="416" y="336" width="22" height="22"/><use class="glyph" href="#g-net" x="418" y="338" width="18" height="18"/>
+  <text class="gl t-svc" x="446" y="352">Model services</text>
+
+  <rect class="grp s-rem" x="416" y="496" width="504" height="244"/>
+  <rect class="c-rem" x="416" y="718" width="22" height="22"/><use class="glyph" href="#g-store" x="418" y="720" width="18" height="18"/>
+  <text class="gl t-rem" x="446" y="734">Remember · capture.py · detached process</text>
+
+  <rect class="grp s-db" x="936" y="56" width="272" height="684"/>
+  <rect class="c-db" x="936" y="56" width="22" height="22"/><use class="glyph" href="#g-db" x="938" y="58" width="18" height="18"/>
+  <text class="gl t-db" x="966" y="72">SQLite · ~/.memeng/store.db</text>
+
+  <!-- Storage tables -->
+  <g>
+    <g class="node" tabindex="0" data-t="memories_vec" data-f="table" data-d="A sqlite-vec vec0 virtual table with cosine distance. It is created on the first write, because the vector size comes from the model. It is rebuilt if the size changes."><rect class="row" x="952" y="124" width="240" height="52" rx="3"/><text class="rn" x="964" y="146">memories_vec</text><text class="rd" x="964" y="163">sqlite-vec vec0, cosine distance</text></g>
+    <g class="node" tabindex="0" data-t="memories_fts" data-f="table" data-d="An FTS5 table over the lemmatised fact and rationale. bm25() scores keyword matches."><rect class="row" x="952" y="196" width="240" height="52" rx="3"/><text class="rn" x="964" y="218">memories_fts</text><text class="rd" x="964" y="235">FTS5 over lemmatised text, BM25</text></g>
+    <g class="node" tabindex="0" data-t="entities" data-f="table" data-d="Normalised entity names, each linked to a fact. Recall matches names in the message against this list."><rect class="row" x="952" y="268" width="240" height="52" rx="3"/><text class="rn" x="964" y="290">entities</text><text class="rd" x="964" y="307">normalised entity → fact</text></g>
+    <g class="node" tabindex="0" data-t="injections" data-f="table" data-d="Which facts each session has already seen, so recall does not show them twice."><rect class="row" x="952" y="340" width="240" height="52" rx="3"/><text class="rn" x="964" y="362">injections</text><text class="rd" x="964" y="379">facts shown this session</text></g>
+    <g class="node" tabindex="0" data-t="logs_*" data-f="table" data-d="logs_captures, logs_retrieval, logs_retrieval_hits and logs_verdicts. They record each gate answer, each search with its scores, and judge verdicts, for evaluation."><rect class="row" x="952" y="412" width="240" height="52" rx="3"/><text class="rn" x="964" y="434">logs_*</text><text class="rd" x="964" y="451">capture and retrieval decisions</text></g>
+    <g class="node" tabindex="0" data-t="messages" data-f="table" data-d="Transcript turns copied in by capture. The processed flag and gate count make sure each turn is extracted once."><rect class="row" x="952" y="484" width="240" height="52" rx="3"/><text class="rn" x="964" y="506">messages</text><text class="rd" x="964" y="523">transcript turns, processed flag</text></g>
+    <g class="node" tabindex="0" data-t="memories" data-f="table" data-d="One row per fact: text, rationale, category, md5 hash, and the project and user it belongs to. The other tables point at it."><rect class="row" x="952" y="556" width="240" height="52" rx="3"/><text class="rn" x="964" y="578">memories</text><text class="rd" x="964" y="595">fact, rationale, category, md5 hash</text></g>
+    <g class="node" tabindex="0" data-t="supersession" data-f="table" data-d="Links a newer fact to the older fact it replaces. The status is superseded or unresolved. Unresolved pairs show as conflicts."><rect class="row" x="952" y="628" width="240" height="52" rx="3"/><text class="rn" x="964" y="650">supersession</text><text class="rd" x="964" y="667">newer fact replaces older</text></g>
+  </g>
+
+  <!-- Recall flow edges -->
+  <path class="flow f-rec" d="M142 140 H280" marker-end="url(#aq)"/>
+  <text class="al" x="211" y="132" text-anchor="middle">message</text>
+  <path class="flow f-rec" d="M282 162 H144" marker-end="url(#aq)"/>
+  <text class="al" x="211" y="182" text-anchor="middle">additionalContext</text>
+  <path class="flow f-rec" d="M334 140 H454" marker-end="url(#aq)"/>
+  <text class="al" x="394" y="132" text-anchor="middle">search()</text>
+  <path class="flow f-rec" d="M508 150 H578" marker-end="url(#aq)"/>
+  <text class="al" x="543" y="142" text-anchor="middle">vector</text>
+  <path class="flow f-rec" d="M632 150 H702" marker-end="url(#aq)"/>
+  <text class="al" x="667" y="142" text-anchor="middle">scores</text>
+  <path class="flow f-rec" d="M756 150 H826" marker-end="url(#aq)"/>
+  <text class="al" x="791" y="142" text-anchor="middle">top 10</text>
+  <path class="flow f-rec" d="M936 290 H606 V224" marker-end="url(#aq)"/>
+  <text class="al" x="780" y="284" text-anchor="middle">knn · bm25 · entities</text>
+  <path class="flow f-rec call" d="M482 222 V326 H904 V412 H882" marker-end="url(#aq)"/>
+  <text class="al" x="488" y="276">embed</text>
+  <path class="flow f-rec" d="M854 126 V90 H372 V162 H338" marker-end="url(#aq)"/>
+  <text class="al" x="680" y="94" text-anchor="middle">memories to inject</text>
+  <path class="flow f-rec" d="M308 124 V44 H1072 V54" marker-end="url(#aq)"/>
+  <text class="al" x="690" y="48" text-anchor="middle">record retrieval and injections · detached process</text>
+
+  <!-- Remember flow edges -->
+  <path class="flow f-rem" d="M142 590 H280" marker-end="url(#ar)"/>
+  <text class="al" x="211" y="582" text-anchor="middle">Stop event</text>
+  <path class="flow f-rem" d="M334 590 H454" marker-end="url(#ar)"/>
+  <text class="al" x="394" y="582" text-anchor="middle">spawn</text>
+  <path class="flow f-rem" d="M508 590 H578" marker-end="url(#ar)"/>
+  <text class="al" x="543" y="582" text-anchor="middle">window</text>
+  <path class="flow f-rem" d="M632 590 H702" marker-end="url(#ar)"/>
+  <text class="al" x="667" y="582" text-anchor="middle">yes</text>
+  <path class="flow f-rem" d="M756 590 H826" marker-end="url(#ar)"/>
+  <text class="al" x="791" y="582" text-anchor="middle">new facts</text>
+  <path class="flow f-rem" d="M880 590 H950" marker-end="url(#ar)"/>
+  <text class="al" x="908" y="582" text-anchor="middle">insert</text>
+  <path class="flow f-rem" d="M936 540 H742 V564" marker-end="url(#ar)"/>
+  <text class="al" x="840" y="534" text-anchor="middle">similar facts · knn</text>
+  <path class="flow f-rem call" d="M606 564 V412 H642" marker-end="url(#ar)"/>
+  <text class="al" x="612" y="520">gate</text>
+  <path class="flow f-rem call" d="M720 566 V412 H694" marker-end="url(#ar)"/>
+  <text class="al" x="714" y="520" text-anchor="end">extract</text>
+  <path class="flow f-rem call" d="M854 564 V438" marker-end="url(#ar)"/>
+  <text class="al" x="860" y="520">embed</text>
+
+  <!-- Nodes: Claude Code -->
+  <g class="node" tabindex="0" data-t="Message submitted" data-f="UserPromptSubmit event" data-d="When you submit a message, Claude Code runs the hook and waits for it. Text the hook returns as additionalContext is added to the message that Claude reads.">
+  <rect class="c-cc" x="92" y="126" width="48" height="48" rx="6"/><use class="glyph" href="#g-term" x="104" y="138" width="24" height="24"/>
+  <text class="nl" x="116" y="196" text-anchor="middle">Message submitted</text><text class="ns" x="116" y="211" text-anchor="middle">before Claude reads it</text>
+  </g>
+  <g class="node" tabindex="0" data-t="Reply finished" data-f="transcript .jsonl" data-d="Claude Code writes every turn to a transcript file. When Claude finishes a reply, it fires the Stop event with the transcript path and the session id.">
+  <rect class="c-cc" x="92" y="566" width="48" height="48" rx="6"/><use class="glyph" href="#g-term" x="104" y="578" width="24" height="24"/>
+  <text class="nl" x="116" y="636" text-anchor="middle">Reply finished</text><text class="ns" x="116" y="651" text-anchor="middle">transcript .jsonl</text>
+  </g>
+
+  <!-- Nodes: hooks -->
+  <g class="node" tabindex="0" data-t="UserPromptSubmit" data-f="src/memeng/hooks/prompt.py" data-d="Skips messages under 3 words and slash commands. Otherwise it calls search() and prints the memories as additionalContext. A failure is logged and never blocks the message.">
+  <rect class="c-hook" x="284" y="126" width="48" height="48" rx="6"/><use class="glyph" href="#g-hook" x="296" y="138" width="24" height="24"/>
+  <text class="nl" x="308" y="196" text-anchor="middle">UserPromptSubmit</text><text class="ns" x="308" y="211" text-anchor="middle">hooks/prompt.py</text>
+  </g>
+  <g class="node" tabindex="0" data-t="Stop" data-f="src/memeng/hooks/stop.py" data-d="Spawns a detached capture process and exits at once. The child skips folders without a .memeng.toml, takes a lock per project, reads turns since the last one it saw, and calls add().">
+  <rect class="c-hook" x="284" y="566" width="48" height="48" rx="6"/><use class="glyph" href="#g-hook" x="296" y="578" width="24" height="24"/>
+  <text class="nl" x="308" y="636" text-anchor="middle">Stop</text><text class="ns" x="308" y="651" text-anchor="middle">hooks/stop.py</text>
+  </g>
+
+  <!-- Nodes: recall -->
+  <g class="node" tabindex="0" data-t="Embed message" data-f="retrieve.py · search" data-d="Embeds the message text into one vector. If Ollama is unavailable, search returns nothing and the message goes through unchanged.">
+  <rect class="c-rec" x="458" y="126" width="48" height="48" rx="6"/><use class="glyph" href="#g-dots" x="470" y="138" width="24" height="24"/>
+  <text class="nl" x="482" y="196" text-anchor="middle">Embed message</text><text class="ns" x="482" y="211" text-anchor="middle">one vector</text>
+  </g>
+  <g class="node" tabindex="0" data-t="Candidates" data-f="facts/common.py · knn, bm25" data-d="knn over memories_vec fetches the nearest max(4 × k, 60) facts for this project and user. Facts below cosine 0.5 are dropped. BM25 and entity matches then score only these candidates.">
+  <rect class="c-rec" x="582" y="126" width="48" height="48" rx="6"/><use class="glyph" href="#g-search" x="594" y="138" width="24" height="24"/>
+  <text class="nl" x="606" y="196" text-anchor="middle">Candidates</text><text class="ns" x="606" y="211" text-anchor="middle">cosine ≥ 0.5</text>
+  </g>
+  <g class="node" tabindex="0" data-t="Fuse + rank" data-f="src/memeng/scoring.py · fuse, rank" data-d="Adds cosine, normalised BM25 and an entity boost capped at 0.5, then divides by the highest possible total. A signal that did not run is left out of that total. rank() keeps the top 10.">
+  <rect class="c-rec" x="706" y="126" width="48" height="48" rx="6"/><use class="glyph" href="#g-merge" x="718" y="138" width="24" height="24"/>
+  <text class="nl" x="730" y="196" text-anchor="middle">Fuse + rank</text><text class="ns" x="730" y="211" text-anchor="middle">scoring.py</text>
+  </g>
+  <g class="node" tabindex="0" data-t="Conflicts + filter" data-f="retrieve.py · _conflicts" data-d="Flags pairs with an unresolved supersession row, or different facts with cosine ≥ 0.6 between them, and places each pair together. Marks superseded facts. Drops facts already shown this session.">
+  <rect class="c-rec" x="830" y="126" width="48" height="48" rx="6"/><use class="glyph" href="#g-filter" x="842" y="138" width="24" height="24"/>
+  <text class="nl" x="854" y="196" text-anchor="middle">Conflicts + filter</text><text class="ns" x="854" y="211" text-anchor="middle">drop injected</text>
+  </g>
+
+  <!-- Nodes: model services -->
+  <g class="node" tabindex="0" data-t="Claude CLI" data-f="src/memeng/llm.py · run_prompt" data-d="Runs claude -p --model sonnet as a subprocess with every tool disabled. The prompt goes on stdin. It sets MEMENG_GATE, so the hooks inside that child session do nothing. Only Remember uses it.">
+  <rect class="c-svc" x="644" y="388" width="48" height="48" rx="6"/><use class="glyph" href="#g-chat" x="656" y="400" width="24" height="24"/>
+  <text class="nl" x="668" y="364" text-anchor="middle">Claude CLI</text><text class="ns" x="668" y="378" text-anchor="middle">claude -p · sonnet</text>
+  </g>
+  <g class="node" tabindex="0" data-t="Ollama" data-f="src/memeng/embed.py · embed" data-d="Posts text to localhost:11434/api/embed with the embeddinggemma model. If Ollama is down, recall returns no memories and capture releases its turns.">
+  <rect class="c-svc" x="830" y="388" width="48" height="48" rx="6"/><use class="glyph" href="#g-net" x="842" y="400" width="24" height="24"/>
+  <text class="nl" x="854" y="364" text-anchor="middle">Ollama</text><text class="ns" x="854" y="378" text-anchor="middle">embeddinggemma</text>
+  </g>
+
+  <!-- Nodes: remember -->
+  <g class="node" tabindex="0" data-t="Claim window" data-f="capture.py · _claim_messages_to_extract" data-d="One write transaction inserts the new turns into messages, reads every unprocessed turn, and marks them processed. A capture that starts meanwhile finds nothing to claim. The window is fitted to 8,000 tokens.">
+  <rect class="c-rem" x="458" y="566" width="48" height="48" rx="6"/><use class="glyph" href="#g-window" x="470" y="578" width="24" height="24"/>
+  <text class="nl" x="482" y="636" text-anchor="middle">Claim window</text><text class="ns" x="482" y="651" text-anchor="middle">≤ 8,000 tokens</text>
+  </g>
+  <g class="node" tabindex="0" data-t="Gate" data-f="prompts/gate.md" data-d="The Claude CLI answers one question: does this window hold anything worth saving? A no returns the turns, so the next window sees more context. Turns that fail the gate 3 times are retired.">
+  <rect class="c-rem" x="582" y="566" width="48" height="48" rx="6"/><use class="glyph" href="#g-gate" x="594" y="578" width="24" height="24"/>
+  <text class="nl" x="606" y="636" text-anchor="middle">Gate</text><text class="ns" x="606" y="651" text-anchor="middle">worth saving?</text>
+  </g>
+  <g class="node" tabindex="0" data-t="Extract" data-f="prompts/extract.md" data-d="Embeds the window and fetches the 10 most similar stored facts. Claude reads the window and those facts. It returns new facts with rationale, category, entities, and the older fact each one supersedes.">
+  <rect class="c-rem" x="706" y="566" width="48" height="48" rx="6"/><use class="glyph" href="#g-funnel" x="718" y="578" width="24" height="24"/>
+  <text class="nl" x="730" y="636" text-anchor="middle">Extract</text><text class="ns" x="730" y="651" text-anchor="middle">facts, entities</text>
+  </g>
+  <g class="node" tabindex="0" data-t="Dedupe + store" data-f="capture.py · _store_facts" data-d="Drops facts whose md5 hash is already stored. Ollama embeds the rest. Each fact is written with its vector, lemmatised text, entities, source turns and supersession link. On a model failure the turns are released for the next capture.">
+  <rect class="c-rem" x="830" y="566" width="48" height="48" rx="6"/><use class="glyph" href="#g-store" x="842" y="578" width="24" height="24"/>
+  <text class="nl" x="854" y="636" text-anchor="middle">Dedupe + store</text><text class="ns" x="854" y="651" text-anchor="middle">md5 hash</text>
+  </g>
+
+  <!-- Step badges -->
+  <g class="badges">
+    <circle class="b-rec" cx="282" cy="124" r="9"/><text class="bn" x="282" y="128" text-anchor="middle">1</text>
+    <circle class="b-rec" cx="456" cy="124" r="9"/><text class="bn" x="456" y="128" text-anchor="middle">2</text>
+    <circle class="b-rec" cx="580" cy="124" r="9"/><text class="bn" x="580" y="128" text-anchor="middle">3</text>
+    <circle class="b-rec" cx="704" cy="124" r="9"/><text class="bn" x="704" y="128" text-anchor="middle">4</text>
+    <circle class="b-rec" cx="828" cy="124" r="9"/><text class="bn" x="828" y="128" text-anchor="middle">5</text>
+    <circle class="b-rec" cx="560" cy="90" r="9"/><text class="bn" x="560" y="94" text-anchor="middle">6</text>
+    <circle class="b-rem" cx="282" cy="564" r="9"/><text class="bn" x="282" y="568" text-anchor="middle">1</text>
+    <circle class="b-rem" cx="456" cy="564" r="9"/><text class="bn" x="456" y="568" text-anchor="middle">2</text>
+    <circle class="b-rem" cx="580" cy="564" r="9"/><text class="bn" x="580" y="568" text-anchor="middle">3</text>
+    <circle class="b-rem" cx="704" cy="564" r="9"/><text class="bn" x="704" y="568" text-anchor="middle">4</text>
+    <circle class="b-rem" cx="828" cy="564" r="9"/><text class="bn" x="828" y="568" text-anchor="middle">5</text>
+  </g>
+</svg>
+    </div>
+    <figcaption>Recall runs inside the hook and finishes before Claude reads your message. Remember runs after each reply in a detached process, so it never delays the session. Numbers match the steps below.</figcaption>
+  </figure>
+
+  <div class="steps">
+    <section class="rec">
+      <h2>Recall <small>UserPromptSubmit hook, before each message</small></h2>
+      <ol>
+        <li><span>Claude Code sends your message to the UserPromptSubmit hook. The hook calls <code>search()</code> in the same process.</span></li>
+        <li><span>Ollama embeds the message into one vector.</span></li>
+        <li><span>knn over <code>memories_vec</code> returns candidates with cosine ≥ 0.5. BM25 over <code>memories_fts</code> and matches in <code>entities</code> score the same candidates.</span></li>
+        <li><span><code>scoring.py</code> fuses the three scores and keeps the top 10.</span></li>
+        <li><span>Conflicting and superseded facts are flagged. Facts already shown this session are dropped.</span></li>
+        <li><span>The hook returns the memories as <code>additionalContext</code>. A detached process writes the retrieval to <code>logs_*</code> and <code>injections</code>.</span></li>
+      </ol>
+    </section>
+    <section class="rem">
+      <h2>Remember <small>Stop hook, after each reply</small></h2>
+      <ol>
+        <li><span>Claude Code fires the Stop hook. The hook starts a detached capture process and returns at once.</span></li>
+        <li><span>Capture reads new turns from the transcript and inserts them into <code>messages</code>. It claims all unprocessed turns as one window.</span></li>
+        <li><span>The Claude CLI answers the gate prompt: does the window hold anything worth saving? A "no" stops the capture.</span></li>
+        <li><span>Capture embeds the window and fetches similar stored facts by knn. The Claude CLI extracts facts, entities, and any older fact each one supersedes.</span></li>
+        <li><span>Facts whose md5 hash already exists are dropped. Ollama embeds the rest. Each fact goes into <code>memories</code>, <code>memories_vec</code>, <code>memories_fts</code>, <code>entities</code> and <code>supersession</code>.</span></li>
+      </ol>
+    </section>
+  </div>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden><b></b><code></code><span></span></div>
+<script>
+(function () {
+  var svg = document.querySelector("figure svg");
+  var tip = document.getElementById("tip");
+  var current = null;
+
+  function show(node) {
+    if (current) current.classList.remove("on");
+    current = node;
+    node.classList.add("on");
+    svg.classList.add("has-on");
+    tip.children[0].textContent = node.dataset.t;
+    tip.children[1].textContent = node.dataset.f;
+    tip.children[2].textContent = node.dataset.d;
+    tip.hidden = false;
+    var box = node.getBoundingClientRect();
+    var t = tip.getBoundingClientRect();
+    var left = Math.min(Math.max(16, box.left + box.width / 2 - t.width / 2), window.innerWidth - t.width - 16);
+    var top = box.bottom + 10;
+    if (top + t.height > window.innerHeight - 8) top = Math.max(8, box.top - t.height - 10);
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+  }
+  function hide() {
+    if (current) current.classList.remove("on");
+    current = null;
+    svg.classList.remove("has-on");
+    tip.hidden = true;
+  }
+
+  svg.querySelectorAll(".node").forEach(function (node) {
+    node.addEventListener("pointerenter", function (e) { if (e.pointerType === "mouse") show(node); });
+    node.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse") hide(); });
+    node.addEventListener("focus", function () { show(node); });
+    node.addEventListener("blur", hide);
+    node.addEventListener("click", function (e) { e.stopPropagation(); show(node); });
+  });
+  document.addEventListener("click", hide);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
+  window.addEventListener("scroll", hide, true);
+})();
+</script>
+<script>
+(function () {
+  var root = document.documentElement;
+  var button = document.getElementById("theme");
+  var dark = window.matchMedia("(prefers-color-scheme: dark)");
+  try { var saved = localStorage.getItem("theme"); if (saved) root.dataset.theme = saved; } catch (e) {}
+
+  function current() { return root.dataset.theme || (dark.matches ? "dark" : "light"); }
+  function render() {
+    var next = current() === "dark" ? "Light" : "Dark";
+    button.querySelector("span").textContent = next + " mode";
+    button.setAttribute("aria-label", "Switch to " + next.toLowerCase() + " mode");
+  }
+  button.addEventListener("click", function () {
+    root.dataset.theme = current() === "dark" ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+    render();
+  });
+  dark.addEventListener("change", render);
+  render();
+})();
+</script>
+
+</body></html>
