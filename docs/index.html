@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>Docs</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,6 +23,22 @@
       --font-body:    'IBM Plex Sans', 'Helvetica Neue', sans-serif;
       --font-mono:    'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
       --radius-lg:    14px;
+      --shadow:       rgba(33,28,22,.25);
+      color-scheme: light dark;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:           #16130F;
+        --ink:          #EDE6DB;
+        --ink-muted:    #A99E91;
+        --ink-faint:    #6F665C;
+        --border:       #3A332B;
+        --border-light: #2A251F;
+        --amber:        #E9A24A;
+        --amber-dim:    #E0922F;
+        --card:         #1F1B16;
+        --shadow:       rgba(0,0,0,.6);
+      }
     }
     * { box-sizing: border-box; }
     body {
@@ -80,7 +97,7 @@
     .doc-card:hover {
       border-color: var(--amber);
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px -12px rgba(33,28,22,.25);
+      box-shadow: 0 8px 24px -12px var(--shadow);
     }
     .doc-card .title {
       font-family: var(--font-display);
